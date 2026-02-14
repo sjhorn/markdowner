@@ -43,6 +43,59 @@ class MarkdownParserDefinition extends MarkdownGrammarDefinition {
       });
 
   @override
+  Parser table() => super.table().token().map((token) {
+        final parts = token.value as List;
+        // parts[0] = header row string
+        // parts[2] = delimiter row string
+        // parts[3] = list of ['\n', bodyRowString] pairs
+        final headerStr = parts[0] as String;
+        final delimiterStr = parts[2] as String;
+        final bodyRowPairs = parts[3] as List;
+
+        final headerCells = _splitRowCells(headerStr);
+        final alignments = _parseAlignments(delimiterStr);
+
+        final bodyRows = <TableRow>[];
+        for (final pair in bodyRowPairs) {
+          final rowStr = (pair as List)[1] as String;
+          bodyRows.add(TableRow(cells: _splitRowCells(rowStr)));
+        }
+
+        return TableBlock(
+          headerRow: TableRow(cells: headerCells),
+          delimiterSource: delimiterStr,
+          alignments: alignments,
+          bodyRows: bodyRows,
+          sourceToken: token,
+        );
+      });
+
+  /// Split a pipe-delimited row string into cells.
+  static List<TableCell> _splitRowCells(String row) {
+    // Remove leading/trailing pipe and split
+    var s = row;
+    if (s.startsWith('|')) s = s.substring(1);
+    if (s.endsWith('|')) s = s.substring(0, s.length - 1);
+    return s.split('|').map((c) => TableCell(text: c.trim())).toList();
+  }
+
+  /// Parse alignment from delimiter row string like `| :--- | :---: | ---: |`.
+  static List<TableAlignment> _parseAlignments(String delimRow) {
+    var s = delimRow;
+    if (s.startsWith('|')) s = s.substring(1);
+    if (s.endsWith('|')) s = s.substring(0, s.length - 1);
+    return s.split('|').map((cell) {
+      final trimmed = cell.trim();
+      final leftColon = trimmed.startsWith(':');
+      final rightColon = trimmed.endsWith(':');
+      if (leftColon && rightColon) return TableAlignment.center;
+      if (rightColon) return TableAlignment.right;
+      if (leftColon) return TableAlignment.left;
+      return TableAlignment.none;
+    }).toList();
+  }
+
+  @override
   Parser fencedCodeBlock() => super.fencedCodeBlock().token().map((token) {
         final parts = token.value as List;
         final fence = parts[0] as String;

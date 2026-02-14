@@ -284,6 +284,29 @@ void main() {
     });
   });
 
+  group('table', () {
+    test('matches simple table', () {
+      final parser = grammar.build();
+      const input = '| A | B |\n| --- | --- |';
+      final result = parser.parse(input);
+      expect(result, isA<Success>());
+    });
+
+    test('matches table with body rows', () {
+      final parser = grammar.build();
+      const input = '| A | B |\n| --- | --- |\n| 1 | 2 |';
+      final result = parser.parse(input);
+      expect(result, isA<Success>());
+    });
+
+    test('matches table with alignment', () {
+      final parser = grammar.build();
+      const input = '| Left | Center | Right |\n| :--- | :---: | ---: |';
+      final result = parser.parse(input);
+      expect(result, isA<Success>());
+    });
+  });
+
   group('setextHeading', () {
     test('matches content with = underline', () {
       final parser = buildFrom(grammar.setextHeading);

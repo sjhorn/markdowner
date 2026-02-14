@@ -86,6 +86,12 @@ void main() {
       expect(ranges, isEmpty);
     });
 
+    test('table has no delimiters', () {
+      final doc = parse('| A |\n| --- |');
+      final ranges = CursorMapper.delimiterRanges(doc.blocks[0]);
+      expect(ranges, isEmpty);
+    });
+
     test('setext heading underline is delimiter', () {
       // "Title\n===\n"
       // content "Title" = 5 chars, then \n===\n is delimiter

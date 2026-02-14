@@ -209,6 +209,27 @@ void main() {
     });
   });
 
+  group('TableBlock', () {
+    test('stores header, alignments, body rows', () {
+      const src = '| A | B |\n| --- | --- |';
+      final token = _tok(null, src, 0, src.length);
+      final table = TableBlock(
+        headerRow: TableRow(cells: [
+          TableCell(text: 'A'),
+          TableCell(text: 'B'),
+        ]),
+        delimiterSource: '| --- | --- |',
+        alignments: [TableAlignment.none, TableAlignment.none],
+        bodyRows: [],
+        sourceToken: token,
+      );
+      expect(table.headerRow.cells, hasLength(2));
+      expect(table.alignments, hasLength(2));
+      expect(table.bodyRows, isEmpty);
+      expect(table.children, isEmpty);
+    });
+  });
+
   group('SetextHeadingBlock', () {
     test('stores level, underline, children', () {
       const src = 'Title\n===\n';

@@ -271,6 +271,47 @@ void main() {
     });
   });
 
+  group('table', () {
+    test('simple table produces TableBlock', () {
+      final doc = parse('| A | B |\n| --- | --- |');
+      expect(doc.blocks, hasLength(1));
+      final table = doc.blocks[0] as TableBlock;
+      expect(table.headerRow.cells, hasLength(2));
+      expect(table.headerRow.cells[0].text, 'A');
+      expect(table.headerRow.cells[1].text, 'B');
+      expect(table.alignments, hasLength(2));
+      expect(table.bodyRows, isEmpty);
+    });
+
+    test('table with body rows', () {
+      final doc = parse('| A | B |\n| --- | --- |\n| 1 | 2 |');
+      final table = doc.blocks[0] as TableBlock;
+      expect(table.bodyRows, hasLength(1));
+      expect(table.bodyRows[0].cells[0].text, '1');
+      expect(table.bodyRows[0].cells[1].text, '2');
+    });
+
+    test('table with alignment', () {
+      final doc = parse('| L | C | R |\n| :--- | :---: | ---: |');
+      final table = doc.blocks[0] as TableBlock;
+      expect(table.alignments[0], TableAlignment.left);
+      expect(table.alignments[1], TableAlignment.center);
+      expect(table.alignments[2], TableAlignment.right);
+    });
+
+    test('table roundtrips', () {
+      const source = '| A | B |\n| --- | --- |\n| 1 | 2 |';
+      final doc = parse(source);
+      expect(doc.toMarkdown(), equals(source));
+    });
+
+    test('table has no children', () {
+      final doc = parse('| A |\n| --- |');
+      final table = doc.blocks[0] as TableBlock;
+      expect(table.children, isEmpty);
+    });
+  });
+
   group('setext heading', () {
     test('= underline produces level 1', () {
       final doc = parse('Title\n===\n');

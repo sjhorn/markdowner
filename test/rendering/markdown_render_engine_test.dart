@@ -193,6 +193,10 @@ void main() {
       verifyTextInvariant('**Bold** title\n===\n');
     });
 
+    test('table', () {
+      verifyTextInvariant('| A | B |\n| --- | --- |\n| 1 | 2 |');
+    });
+
     test('heading without trailing newline', () {
       verifyTextInvariant('# Heading');
     });

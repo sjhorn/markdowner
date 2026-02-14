@@ -224,6 +224,42 @@ class SetextHeadingBlock extends MarkdownBlock {
   });
 }
 
+/// Column alignment in a GFM table.
+enum TableAlignment { left, center, right, none }
+
+/// A single cell in a table row.
+class TableCell {
+  final String text;
+
+  TableCell({required this.text});
+}
+
+/// A single row in a table.
+class TableRow {
+  final List<TableCell> cells;
+
+  TableRow({required this.cells});
+}
+
+/// A GFM table block.
+class TableBlock extends MarkdownBlock {
+  final TableRow headerRow;
+  final String delimiterSource;
+  final List<TableAlignment> alignments;
+  final List<TableRow> bodyRows;
+
+  @override
+  List<MarkdownInline> get children => const [];
+
+  TableBlock({
+    required this.headerRow,
+    required this.delimiterSource,
+    required this.alignments,
+    required this.bodyRows,
+    required super.sourceToken,
+  });
+}
+
 // ─── Inline Nodes (Phase 1) ───
 
 /// Plain text with no formatting.

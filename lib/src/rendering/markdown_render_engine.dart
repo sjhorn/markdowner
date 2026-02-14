@@ -55,6 +55,9 @@ class MarkdownRenderEngine {
             block, block.prefixLength, block.children, baseStyle, delimiterStyle, revealed);
       case SetextHeadingBlock():
         return _buildSetextHeadingSpan(block, baseStyle, delimiterStyle, revealed);
+      case TableBlock():
+        // Phase 2: show full source in monospace; WidgetSpan rendering is Phase 4
+        return TextSpan(text: block.sourceText, style: theme.codeBlockStyle);
     }
   }
 

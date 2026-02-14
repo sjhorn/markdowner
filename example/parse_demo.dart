@@ -78,6 +78,10 @@ String _describeBlock(MarkdownBlock block) {
           'underline="${block.underline}", '
           'children=[${block.children.map(_describeInline).join(', ')}], '
           'source=${block.sourceStart}..${block.sourceStop})',
+    TableBlock() =>
+      'TableBlock(cols=${block.alignments.length}, '
+          'rows=${block.bodyRows.length}, '
+          'source=${block.sourceStart}..${block.sourceStop})',
   };
 }
 

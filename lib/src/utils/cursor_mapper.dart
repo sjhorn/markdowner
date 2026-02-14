@@ -36,6 +36,10 @@ class CursorMapper {
         // No delimiters
         break;
 
+      case TableBlock():
+        // No delimiter ranges — full source visible in both modes (Phase 2)
+        break;
+
       case SetextHeadingBlock():
         _addInlineDelimiterRanges(block.children, blockStart, ranges);
         // Underline line is delimiter: \nunderline\n or \nunderline<eoi>

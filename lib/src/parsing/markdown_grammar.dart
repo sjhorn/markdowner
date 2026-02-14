@@ -24,6 +24,7 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       ref0(blankLine) |
       ref0(atxHeading) |
       ref0(fencedCodeBlock) |
+      ref0(table) |
       ref0(thematicBreak) |
       ref0(blockquote) |
       ref0(unorderedListItem) |
@@ -66,6 +67,21 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       ((char('`').times(3) & char('`').star()).flatten() |
           (char('~').times(3) & char('~').star()).flatten()) &
       ref0(lineEnding);
+
+  /// GFM table: header row + delimiter row + body rows.
+  Parser table() =>
+      ref0(tableRow) &
+      char('\n') &
+      ref0(tableDelimiterRow) &
+      (char('\n') & ref0(tableRow)).star();
+
+  /// A table row: everything from `|` to end of line, parsed as a flat string.
+  Parser tableRow() => (char('|') & noneOf('\n').star()).flatten();
+
+  /// Table delimiter row: must have `|`, dashes, optional colons.
+  /// We validate structure in the parser; grammar just ensures it looks like a delimiter row.
+  Parser tableDelimiterRow() =>
+      (char('|') & pattern(' :-').plus() & (char('|') & pattern(' :-').star()).star()).flatten();
 
   /// Thematic break: exactly `---`, `***`, or `___` followed by line ending.
   Parser thematicBreak() =>
