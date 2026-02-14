@@ -7,6 +7,8 @@ Details in ROADMAP.md
 
 Aim to build a working example in ./example of each part as we go. Its ok to use separate named.dart files as we test with the final product coming together in the main.dart
 
+We will follow TDD Workflow per the section below and implement SOLID Principles per the section below. As we complete a TDD workflow cycle we will commit to git with a meaningful comment or when we complete a phase. We will also aim to update our ROADMAP.md as we go with the cycle.
+
 ## Development Principles
 
 ### TDD Workflow

@@ -1,40 +1,97 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# Markdowner
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+A high-performance Flutter markdown WYSIWYG widget that provides a **Typora-style editing experience** built on top of `EditableText`.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+Type markdown and see it rendered as rich text in real-time. When the cursor enters a block, raw syntax is revealed for editing. When the cursor leaves, syntax collapses and content renders visually.
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+## Status
 
-## Features
+**Phase 1 complete** — parser, AST, rendering engine, controller, and editor widget.
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+See [ROADMAP.md](ROADMAP.md) for the full specification and implementation phases.
 
-## Getting started
+## Features (Phase 1)
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+- **Reveal/hide WYSIWYG** — syntax visible when editing a block, collapsed when cursor leaves
+- **PetitParser-based grammar** — composable, testable, extensible markdown parser
+- **Lossless roundtrip** — `parse(source).toMarkdown() == source`
+- **Light and dark themes** — with customizable styles via `MarkdownEditorTheme`
+- **Undo/redo** — stack-based with 1-second coalescing
+
+### Supported Syntax
+
+| Block | Inline |
+|---|---|
+| ATX headings (`#` through `######`) | Bold (`**` and `__`) |
+| Paragraphs | Italic (`*` and `_`) |
+| Thematic breaks (`---`, `***`, `___`) | Bold-italic (`***`) |
+| Blank lines | Inline code (`` ` `` and ``` `` ```) |
+| | Strikethrough (`~~`) |
+| | Escaped characters (`\*`, `\#`, etc.) |
+
+## Getting Started
+
+Add to your `pubspec.yaml`:
+
+```yaml
+dependencies:
+  markdowner:
+    path: ../markdowner  # or publish to pub.dev
+```
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
-
 ```dart
-const like = 'sample';
+import 'package:markdowner/markdowner.dart';
+
+// Simple usage
+MarkdownEditor(
+  initialMarkdown: '# Hello\n\nSome **bold** text\n',
+  onChanged: (markdown) => print(markdown),
+  autofocus: true,
+)
+
+// With external controller
+final controller = MarkdownEditingController(
+  text: '# Hello\n',
+  theme: MarkdownEditorTheme.dark(),
+);
+
+MarkdownEditor(
+  controller: controller,
+  theme: MarkdownEditorTheme.dark(),
+)
 ```
 
-## Additional information
+See [example/editor_demo.dart](example/editor_demo.dart) for a full working example.
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
-# markdowner
+## Architecture
+
+```
+lib/
+├── markdowner.dart                          # Public API exports
+└── src/
+    ├── core/markdown_nodes.dart             # AST model (sealed classes)
+    ├── parsing/
+    │   ├── markdown_grammar.dart            # PetitParser grammar definition
+    │   └── markdown_parser.dart             # Parser with AST construction
+    ├── rendering/markdown_render_engine.dart # TextSpan tree builder
+    ├── theme/markdown_editor_theme.dart      # Theme configuration
+    ├── editor/markdown_editing_controller.dart # TextEditingController subclass
+    ├── utils/
+    │   ├── cursor_mapper.dart               # Delimiter range detection
+    │   └── undo_redo_manager.dart           # Undo/redo stack
+    └── widgets/markdown_editor.dart         # MarkdownEditor widget
+```
+
+## Testing
+
+```bash
+flutter test                    # Run all tests (225 passing)
+flutter analyze                 # Static analysis (zero issues)
+flutter test --coverage         # Generate coverage data
+```
+
+## License
+
+MIT
