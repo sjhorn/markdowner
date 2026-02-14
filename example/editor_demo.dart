@@ -42,6 +42,8 @@ Try placing your cursor on different lines:
 
 - When the cursor is **inside** a block, you see the raw *markdown syntax*
 - When the cursor **leaves**, syntax collapses and content renders with `rich formatting`
+- [x] Phase 1 complete
+- [ ] Phase 2 in progress
 
 ### Inline Styles
 
@@ -53,7 +55,34 @@ Inline `code` looks like this, and ~~strikethrough~~ like this.
 
 Escaped characters: \\* \\# \\~
 
----
+### Links and Images
+
+Visit [Flutter](https://flutter.dev "Flutter website") for more info.
+
+Check out <https://dart.dev> too.
+
+Here is an image: ![Dash](https://flutter.dev/dash.png)
+
+### Code Blocks
+
+```dart
+void main() {
+  print('Hello, Markdowner!');
+}
+```
+
+### Blockquotes
+
+> This is a blockquote with **bold** text.
+> Blockquotes can span multiple lines.
+
+### Ordered Lists
+
+1. First item
+2. Second item
+3. Third item
+
+***
 
 That was a thematic break above. Happy editing!
 ''';

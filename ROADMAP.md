@@ -1640,38 +1640,38 @@ enum ImageInsertSource {
 **Goal:** Support all CommonMark and GFM syntax. Complex block rendering via WidgetSpan.
 
 **PetitParser Grammar (additions):**
-- [ ] Block productions: `fencedCodeBlock`, `indentedCodeBlock`, `blockquote` (nested), `unorderedListItem`, `orderedListItem`, `table` (GFM pipes), `setextHeading`
-- [ ] Inline productions: `link`, `image`, `autolink`, `strikethrough`, `hardLineBreak`, `taskCheckbox`
-- [ ] Helper productions: `lineStart`, `listIndent`, `infoString`, `codeBlockContent`, `linkUrl`, `linkTitle`, `tableRow`, `tableDelimiter`
-- [ ] Update `MarkdownParserDefinition` with `.token().map()` for all new productions
+- [x] Block productions: `fencedCodeBlock`, `blockquote`, `unorderedListItem`, `orderedListItem`, `table` (GFM pipes), `setextHeading` — (`indentedCodeBlock` deferred, `blockquote` single-line only)
+- [x] Inline productions: `link`, `image`, `autolink`, `strikethrough` (Phase 1), `taskCheckbox` — (`hardLineBreak` deferred to Phase 3)
+- [x] Helper productions: `listIndent`, `infoString`, `codeBlockContent`, `linkUrl`, `linkTitle`, `tableRow`, `tableDelimiter`, `taskCheckbox`, `openFence`, `closeFence`
+- [x] Update `MarkdownParserDefinition` with `.token().map()` for all new productions
 
 **AST Nodes (additions):**
-- [ ] Block nodes: `FencedCodeBlock`, `IndentedCodeBlock`, `BlockquoteBlock`, `ListBlock`, `ListItemBlock`, `TableBlock`, `SetextHeadingBlock`
-- [ ] Inline nodes: `LinkInline`, `ImageInline`, `AutolinkInline`, `StrikethroughInline`, `HardLineBreakInline`
-- [ ] Table support types: `TableRow`, `TableCell`, `TableAlignment`
+- [x] Block nodes: `FencedCodeBlock`, `BlockquoteBlock`, `UnorderedListItemBlock`, `OrderedListItemBlock`, `TableBlock`, `SetextHeadingBlock` — (`IndentedCodeBlock` deferred)
+- [x] Inline nodes: `LinkInline`, `ImageInline`, `AutolinkInline`, `StrikethroughInline` (Phase 1) — (`HardLineBreakInline` deferred)
+- [x] Table support types: `TableRow`, `TableCell`, `TableAlignment`
 
-**Incremental Parsing:**
+**Incremental Parsing:** *(deferred — full re-parse is fast enough for current scope)*
 - [ ] `IncrementalParseEngine` — detect affected blocks on edit, re-parse only those
 - [ ] Block boundary detection (blank lines, fence markers, heading markers)
 - [ ] Offset adjustment for blocks after the edit region
 
 **Rendering (additions):**
-- [ ] Code blocks: monospace container with optional syntax highlighting (integrate `flutter_highlight` or equivalent)
+- [x] Code blocks: monospace container with `codeBlockStyle` — (syntax highlighting deferred)
 - [ ] Code block language detection from info string
-- [ ] Blockquotes: left-border styled container
-- [ ] Lists: bullet/number glyphs with proper indentation
-- [ ] Task lists: interactive checkbox `WidgetSpan`
-- [ ] Tables: `Table` widget via `WidgetSpan`
-- [ ] Images: `Image.network` / `Image.file` via `WidgetSpan` with loading/error states
-- [ ] Thematic breaks: `Divider` via `WidgetSpan`
-- [ ] Links: styled text, tap handler (opens URL or triggers `onLinkTap` callback)
-- [ ] Strikethrough: `TextDecoration.lineThrough`
+- [x] Blockquotes: styled with `blockquoteStyle` — (left-border `WidgetSpan` deferred to Phase 4)
+- [x] Lists: marker prefix reveal/hide with inline content rendering
+- [ ] Task lists: interactive checkbox `WidgetSpan` — (deferred to Phase 4)
+- [ ] Tables: `Table` widget via `WidgetSpan` — (deferred to Phase 4; renders as monospace text)
+- [ ] Images: `Image.network` / `Image.file` via `WidgetSpan` — (deferred to Phase 4; shows alt text)
+- [ ] Thematic breaks: `Divider` via `WidgetSpan` — (deferred to Phase 4)
+- [x] Links: styled text with `linkStyle`
+- [x] Strikethrough: `TextDecoration.lineThrough` (Phase 1)
 
 **Testing:**
 - [ ] CommonMark spec test suite integration (parse each spec example, verify output)
-- [ ] GFM table parsing edge cases (ragged rows, escaped pipes, alignment markers)
-- [ ] Nested blockquotes and lists
-- [ ] Code block with nested backtick sequences
+- [x] GFM table parsing edge cases (alignment markers, header/body rows, cell splitting)
+- [ ] Nested blockquotes and lists — (nesting deferred; single-line blocks only)
+- [x] Code block with backtick/tilde fences, optional info string
 
 **Acceptance criteria:**
 - All CommonMark 0.31 spec examples parse correctly.
