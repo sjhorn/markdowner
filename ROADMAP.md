@@ -7,7 +7,7 @@ Build a Flutter widget that provides a **Typora-style WYSIWYG markdown editing e
 **Parsing engine:** [PetitParser](https://pub.dev/packages/petitparser) — a parser combinator framework used to define the markdown grammar as composable, testable Dart code. PetitParser's `Token` class provides built-in source position tracking (`start`, `stop`) which maps directly to the reveal/hide mechanic.
 
 **Package name:** `markdowner`
-**Min Flutter SDK:** 3.38+
+**Min Flutter SDK:** 3.22+
 **Min Dart SDK:** 3.5+
 **Target platforms:** iOS, Android, macOS, Windows, Linux, Web
 
@@ -602,4 +602,1358 @@ class ImageInline extends MarkdownInline {
 }
 
 class AutolinkInline extends MarkdownInline {
-  final String url
+  final String url;
+  AutolinkInline({required this.url, required super.sourceToken});
+}
+
+class HardLineBreakInline extends MarkdownInline {
+  HardLineBreakInline({required super.sourceToken});
+}
+
+class EscapedCharInline extends MarkdownInline {
+  final String character; // the character after '\'
+  EscapedCharInline({required this.character, required super.sourceToken});
+}
+
+class InlineMathInline extends MarkdownInline {
+  final String expression;
+
+  int get contentStart => sourceStart + 1; // skip '$'
+  int get contentStop => sourceStop - 1;
+
+  InlineMathInline({required this.expression, required super.sourceToken});
+}
+
+class HighlightInline extends MarkdownInline {
+  final List<MarkdownInline> children;
+
+  int get contentStart => sourceStart + 2; // skip '=='
+  int get contentStop => sourceStop - 2;
+
+  HighlightInline({required this.children, required super.sourceToken});
+}
+
+class FootnoteRefInline extends MarkdownInline {
+  final String label;
+  FootnoteRefInline({required this.label, required super.sourceToken});
+}
+
+class EmojiInline extends MarkdownInline {
+  final String shortcode; // e.g., 'smile' from ':smile:'
+  EmojiInline({required this.shortcode, required super.sourceToken});
+}
+```
+
+### Table Support Types
+
+```dart
+enum TableAlignment { left, center, right }
+
+class TableRow {
+  final List<TableCell> cells;
+  final bool isHeader;
+  TableRow({required this.cells, this.isHeader = false});
+}
+
+class TableCell {
+  final List<MarkdownInline> children;
+  TableCell({required this.children});
+}
+```
+
+### MarkdownDocument
+
+```dart
+class MarkdownDocument {
+  final List<MarkdownBlock> blocks;
+
+  MarkdownDocument({required this.blocks});
+
+  /// Serialize back to the exact original markdown string.
+  /// Uses sourceToken.input from each block to reconstruct.
+  String toMarkdown() {
+    return blocks.map((b) => b.sourceText).join();
+  }
+
+  /// Find the block that contains the given source offset.
+  int? blockIndexAtOffset(int offset) {
+    for (var i = 0; i < blocks.length; i++) {
+      if (offset >= blocks[i].sourceStart && offset < blocks[i].sourceStop) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  /// Find the inline node at the given offset within a block.
+  MarkdownInline? inlineAtOffset(int blockIndex, int offset) {
+    final block = blocks[blockIndex];
+    for (final inline in block.children) {
+      if (offset >= inline.sourceStart && offset < inline.sourceStop) {
+        return inline;
+      }
+    }
+    return null;
+  }
+}
+```
+
+---
+
+## Incremental Parsing Engine
+
+### Strategy
+
+Full re-parsing the entire document on every keystroke is too expensive for large documents. The `IncrementalParseEngine` provides efficient re-parsing:
+
+```dart
+class IncrementalParseEngine {
+  final MarkdownParserDefinition _definition;
+  late final Parser _blockParser;
+  MarkdownDocument _document;
+
+  IncrementalParseEngine(this._definition)
+      : _blockParser = _definition.buildFrom(_definition.block());
+
+  /// Re-parse after a text edit.
+  /// [editStart] and [editEnd] are the range in the old text that was replaced.
+  /// [newText] is the replacement text.
+  /// Returns a new MarkdownDocument with only affected blocks re-parsed.
+  MarkdownDocument reparse({
+    required String oldText,
+    required String newText,
+    required int editStart,
+    required int editEnd,
+    required String insertedText,
+  }) {
+    // 1. Find which blocks are affected by the edit range
+    final affectedStart = _findBlockContaining(editStart);
+    final affectedEnd = _findBlockContaining(editEnd);
+
+    // 2. Extract the region from the NEW text that covers those blocks
+    //    (with some padding for block boundary detection)
+    final regionStart = _document.blocks[affectedStart].sourceStart;
+    final regionEnd = _adjustedEnd(affectedEnd, editEnd, insertedText.length - (editEnd - editStart));
+    final region = newText.substring(regionStart, regionEnd);
+
+    // 3. Re-parse only the affected region
+    final newBlocks = _parseRegion(region, regionStart);
+
+    // 4. Splice new blocks into the document, adjusting offsets for subsequent blocks
+    final delta = newText.length - oldText.length;
+    return _spliceBlocks(affectedStart, affectedEnd, newBlocks, delta);
+  }
+}
+```
+
+### Block Boundary Detection
+
+Blocks are separated by blank lines or specific syntax boundaries (code fences, headings, etc.). The incremental engine detects block boundaries by scanning for:
+
+- Blank lines (`\n\n`)
+- Lines starting with `#`, `>`, `-`, `*`, `+`, digits followed by `.` or `)`, `` ` `` (triple), `~` (triple)
+- Code fence open/close pairs
+
+When an edit falls entirely within a single block and does not introduce or remove block boundary characters, only that one block is re-parsed.
+
+---
+
+## Editing Behavior: Reveal/Hide Mechanic
+
+### Rules
+
+1. **Block-level reveal:** A block is "active" when the cursor (or selection) is anywhere within that block's source range (using `Token.start` / `Token.stop`). Active blocks show raw markdown syntax. Inactive blocks are rendered.
+
+2. **Inline-level reveal (within active block):** When the cursor is inside an inline element's `Token` range within the active block, the syntax delimiters for that specific inline are visible (e.g., `**` around bold text). Other inlines in the same block remain rendered.
+
+3. **Transitions:**
+   - Cursor enters a block → parse raw source, show syntax, position cursor correctly.
+   - Cursor leaves a block → re-parse, collapse syntax, render visually.
+   - Transition must be smooth (no visible flicker or layout jump).
+
+4. **Special cases:**
+   - **Headings:** When active, show `## Heading`. When inactive, render as styled large text without `##`.
+   - **Code blocks:** When active, show `` ``` `` fences. When inactive, render as a styled code container. Content inside is always monospaced.
+   - **Lists:** When active, show `- ` or `1. ` prefixes. When inactive, render with bullet/number glyphs and indentation.
+   - **Links:** When active, show `[text](url)`. When inactive, show styled link text only.
+   - **Images:** When active, show `![alt](url)`. When inactive, render the actual image (or placeholder if loading/error).
+   - **Blockquotes:** When active, show `> ` prefix. When inactive, render with left border styling.
+   - **Tables:** When active, show pipe-delimited raw syntax. When inactive, render as a formatted table widget.
+   - **Thematic breaks:** When active, show `---`. When inactive, render as a horizontal divider.
+   - **Math blocks:** When active, show `$$ ... $$`. When inactive, render the math expression (via a math rendering package).
+
+### Cursor Position Mapping
+
+When transitioning between revealed and collapsed states, the cursor position must be remapped:
+
+```
+Revealed:  "This is **bold** text"
+           Position: 15 (inside "bold")
+                         ^
+
+Collapsed: "This is bold text"
+           Position: 12 (inside "bold" — offset adjusted)
+                        ^
+```
+
+Implement bidirectional mapping functions using the AST node's `Token` metadata:
+
+```dart
+class CursorMapper {
+  /// Map a cursor offset in the full source (with syntax) to the rendered offset (without syntax).
+  int revealedToCollapsed(int offset, MarkdownBlock block) {
+    var adjustment = 0;
+    for (final inline in block.children) {
+      if (inline.sourceStart >= offset) break;
+      if (inline is BoldInline) {
+        // Subtract delimiter lengths that appear before cursor
+        if (offset > inline.sourceStart) {
+          adjustment += inline.delimiter.length; // opening delimiter
+        }
+        if (offset > inline.sourceStop - inline.delimiter.length) {
+          adjustment += inline.delimiter.length; // closing delimiter
+        }
+      }
+      // ... similar logic for other inline types with delimiters
+    }
+    return offset - adjustment;
+  }
+
+  /// Map a cursor offset in the rendered text back to the source offset.
+  int collapsedToRevealed(int offset, MarkdownBlock block) {
+    // Inverse of the above
+  }
+}
+```
+
+---
+
+## TextSpan Tree Construction
+
+### `MarkdownEditingController.buildTextSpan()`
+
+This is the core rendering function. Override `TextEditingController.buildTextSpan()`:
+
+```dart
+class MarkdownEditingController extends TextEditingController {
+  MarkdownDocument _document;
+  final IncrementalParseEngine _parseEngine;
+  final MarkdownRenderEngine _renderEngine;
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final cursorOffset = selection.baseOffset;
+    final activeBlockIndex = _document.blockIndexAtOffset(cursorOffset);
+    final spans = <InlineSpan>[];
+
+    for (var i = 0; i < _document.blocks.length; i++) {
+      final block = _document.blocks[i];
+      final isActive = (i == activeBlockIndex);
+
+      if (isActive) {
+        // Revealed mode: show raw syntax with syntax highlighting
+        spans.add(_renderEngine.buildRevealedSpan(block, cursorOffset, style));
+      } else {
+        // Collapsed mode: render formatted output
+        spans.add(_renderEngine.buildCollapsedSpan(block, style));
+      }
+    }
+
+    return TextSpan(children: spans, style: style);
+  }
+
+  @override
+  set value(TextEditingValue newValue) {
+    // Intercept edits, run incremental parse, update _document
+    if (newValue.text != text) {
+      _document = _parseEngine.reparse(
+        oldText: text,
+        newText: newValue.text,
+        editStart: _computeEditStart(text, newValue.text),
+        editEnd: _computeEditEnd(text, newValue.text),
+        insertedText: _computeInsertedText(text, newValue.text),
+      );
+    }
+    super.value = newValue;
+  }
+}
+```
+
+### Styling for Rendered (Collapsed) Elements
+
+| Element | Rendered Style |
+|---|---|
+| `# Heading 1` | fontSize: 2.0em, fontWeight: bold |
+| `## Heading 2` | fontSize: 1.5em, fontWeight: bold |
+| `### Heading 3` | fontSize: 1.25em, fontWeight: bold |
+| `#### Heading 4` | fontSize: 1.1em, fontWeight: bold |
+| `##### Heading 5` | fontSize: 1.0em, fontWeight: bold |
+| `###### Heading 6` | fontSize: 0.9em, fontWeight: bold, color: muted |
+| **bold** | fontWeight: bold |
+| *italic* | fontStyle: italic |
+| ***bold italic*** | fontWeight: bold, fontStyle: italic |
+| `code` | fontFamily: monospace, backgroundColor: codeBg |
+| ~~strikethrough~~ | decoration: lineThrough |
+| [link](url) | color: linkColor, decoration: underline |
+| ==highlight== | backgroundColor: highlightColor |
+| > blockquote | Left border, italic, muted color |
+| `---` | WidgetSpan with Divider |
+| Code block | Full-width container, monospace, background color |
+| Table | WidgetSpan with Table widget |
+| Image | WidgetSpan with Image widget |
+
+### Syntax Highlighting (Revealed Mode)
+
+When a block is active and syntax is revealed, style the syntax delimiters differently from content:
+
+```dart
+class MarkdownRenderEngine {
+  TextSpan buildRevealedSpan(MarkdownBlock block, int cursorOffset, TextStyle? baseStyle) {
+    // For the active block, render the full source text with syntax highlighting
+    final children = <TextSpan>[];
+
+    for (final inline in block.children) {
+      if (inline is BoldInline) {
+        // Opening delimiter — muted style
+        children.add(TextSpan(
+          text: inline.delimiter,
+          style: baseStyle?.merge(theme.syntaxDelimiterStyle),
+        ));
+        // Content — bold style
+        children.addAll(_buildInlineSpans(inline.children, baseStyle?.merge(theme.boldStyle)));
+        // Closing delimiter — muted style
+        children.add(TextSpan(
+          text: inline.delimiter,
+          style: baseStyle?.merge(theme.syntaxDelimiterStyle),
+        ));
+      }
+      // ... similar for other inline types
+    }
+
+    return TextSpan(children: children);
+  }
+
+  TextSpan buildCollapsedSpan(MarkdownBlock block, TextStyle? baseStyle) {
+    // For inactive blocks, render only content without syntax characters
+    if (block is HeadingBlock) {
+      return TextSpan(
+        text: block.children.map((i) => _inlineToPlainText(i)).join(),
+        style: baseStyle?.merge(theme.headingStyles[block.level - 1]),
+      );
+    }
+    // ... similar for other block types
+  }
+}
+```
+
+---
+
+## WidgetSpan Usage for Complex Elements
+
+Some elements cannot be represented as `TextSpan` alone. Use `WidgetSpan` for:
+
+1. **Images** (`![alt](url)`) — render actual `Image` widget in collapsed mode.
+2. **Thematic breaks** (`---`) — render as `Divider` widget.
+3. **Tables** — render as a `Table` widget in collapsed mode.
+4. **Code blocks** — render as a styled `Container` with syntax-highlighted code.
+5. **Checkboxes** (`- [x]`, `- [ ]`) — render interactive `Checkbox` widgets.
+6. **Math expressions** — render via math rendering widget.
+
+**Important:** `WidgetSpan` has limitations within `EditableText`. Consider using a hybrid approach: a `Column` of widgets where each block is its own `EditableText` or widget, connected by a shared controller. This is the approach Typora itself uses internally (block-level separation).
+
+---
+
+## Alternative Architecture: Block-Level Widgets (v2)
+
+Given the complexity of `WidgetSpan` within a single `EditableText`, the v2 architecture uses block-level separation:
+
+```
+MarkdownEditor
+├── ListView.builder (or Column inside SingleChildScrollView)
+│   ├── ParagraphBlockWidget (EditableText-based)
+│   ├── HeadingBlockWidget (EditableText-based, larger font)
+│   ├── CodeBlockWidget (custom widget with syntax highlighting)
+│   ├── ImageBlockWidget (Image widget + caption EditableText)
+│   ├── TableBlockWidget (Table widget, cells are EditableText)
+│   ├── ListBlockWidget (Column of ListItemBlockWidget)
+│   ├── BlockquoteBlockWidget (styled container with EditableText)
+│   └── ThematicBreakBlockWidget (Divider widget)
+```
+
+### Cross-Block Editing
+
+If using block-level widgets, implement a **FocusTraversalPolicy** and **cross-block selection**:
+
+- Arrow keys at the end of one block move focus to the next block.
+- Backspace at the start of a block merges with the previous block.
+- Enter at the end of certain blocks (e.g., list item) creates a new block of the same type.
+- Selection can span multiple blocks (multi-block selection).
+- Cut/copy/paste operations work across block boundaries.
+
+This is significantly more complex but enables richer rendering (tables, images, math, embeds).
+
+---
+
+## Keyboard Shortcuts & Input Handling
+
+### Standard Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl/Cmd + B` | Toggle bold (`**`) around selection |
+| `Ctrl/Cmd + I` | Toggle italic (`*`) around selection |
+| `Ctrl/Cmd + K` | Insert link `[](url)` or wrap selection `[selection](url)` |
+| `Ctrl/Cmd + `` ` `` ` | Toggle inline code |
+| `Ctrl/Cmd + Shift + K` | Toggle strikethrough (`~~`) |
+| `Ctrl/Cmd + Shift + M` | Toggle inline math (if enabled) |
+| `Ctrl/Cmd + 1..6` | Set heading level 1-6 for current line |
+| `Ctrl/Cmd + 0` | Clear heading (convert to paragraph) |
+| `Ctrl/Cmd + Shift + [` | Decrease indent (outdent list) |
+| `Ctrl/Cmd + Shift + ]` | Increase indent (indent list) |
+| `Ctrl/Cmd + Z` | Undo |
+| `Ctrl/Cmd + Shift + Z` (or `Ctrl/Cmd + Y`) | Redo |
+| `Ctrl/Cmd + S` | Save (triggers `onSaved` callback) |
+| `Tab` | Indent list item (when cursor is in a list) |
+| `Shift + Tab` | Outdent list item |
+| `Enter` | Context-aware: new list item, exit code block (double enter), new paragraph |
+| `Backspace` | Context-aware: unindent list, remove block prefix, merge blocks |
+| `Ctrl/Cmd + Shift + C` | Toggle fenced code block |
+
+### Auto-Completion / Continuation
+
+| Trigger | Behavior |
+|---|---|
+| `Enter` in a list item | Create new list item with same prefix (`- `, `1. `) with auto-incremented number |
+| `Enter` on empty list item | Exit list, convert to paragraph |
+| `Enter` in blockquote | Continue blockquote prefix (`> `) |
+| `Enter` on empty blockquote line | Exit blockquote |
+| `Enter` in code block | New line within code block |
+| `Enter` `Enter` at end of code block | Close code block, new paragraph |
+| `` ``` `` + language + `Enter` | Open fenced code block |
+| `---` + `Enter` on empty line | Insert thematic break |
+| `> ` at start of line | Convert to blockquote |
+| `# ` at start of line | Convert to heading (up to `######`) |
+| `- ` or `* ` at start of line | Convert to unordered list item |
+| `1. ` at start of line | Convert to ordered list item |
+| `- [ ] ` at start of line | Convert to task list item |
+| `\| ` at start of line | Begin table row |
+
+### Smart Pair Completion
+
+| Input | Auto-completes to | Condition |
+|---|---|---|
+| `**` | `****` (cursor between) | No existing bold context |
+| `*` | `**` (cursor between) | No existing italic context |
+| `` ` `` | ` `` ` ` (cursor between) | No existing code context |
+| `~~` | `~~~~` (cursor between) | No existing strikethrough context |
+| `[` | `[]()` (cursor in brackets) | When followed by space or EOL |
+| `![` | `![]()` (cursor in brackets) | When followed by space or EOL |
+
+---
+
+## Undo / Redo
+
+```dart
+class UndoRedoManager {
+  final List<MarkdownSnapshot> _undoStack = [];
+  final List<MarkdownSnapshot> _redoStack = [];
+  Timer? _coalesceTimer;
+  static const _coalesceDelay = Duration(milliseconds: 1000);
+
+  /// Record a change. Rapid edits within _coalesceDelay are merged into one entry.
+  void recordChange(String markdown, TextSelection selection) {
+    _coalesceTimer?.cancel();
+    _coalesceTimer = Timer(_coalesceDelay, () {
+      _undoStack.add(MarkdownSnapshot(
+        markdown: markdown,
+        selection: selection,
+        timestamp: DateTime.now(),
+      ));
+      _redoStack.clear(); // new edit invalidates redo stack
+    });
+  }
+
+  /// Force-break the current coalescing group.
+  /// Call on: whitespace, deletion, paste, format toggle, cursor jump.
+  void breakGroup() {
+    _coalesceTimer?.cancel();
+    // Commit any pending coalesced edit immediately
+  }
+
+  MarkdownSnapshot? undo() {
+    if (_undoStack.isEmpty) return null;
+    final current = _undoStack.removeLast();
+    _redoStack.add(current);
+    return _undoStack.lastOrNull;
+  }
+
+  MarkdownSnapshot? redo() {
+    if (_redoStack.isEmpty) return null;
+    final snapshot = _redoStack.removeLast();
+    _undoStack.add(snapshot);
+    return snapshot;
+  }
+
+  bool get canUndo => _undoStack.length > 1;
+  bool get canRedo => _redoStack.isNotEmpty;
+}
+
+class MarkdownSnapshot {
+  final String markdown;
+  final TextSelection selection;
+  final DateTime timestamp;
+
+  const MarkdownSnapshot({
+    required this.markdown,
+    required this.selection,
+    required this.timestamp,
+  });
+}
+```
+
+**Coalescing rules:** Break undo groups on: whitespace insertion, deletion (backspace/delete), paste, formatting toggle, cursor jump (click or arrow key to non-adjacent position), or 1-second pause.
+
+---
+
+## Markdown Specification Support
+
+### Required (Phase 1-2): CommonMark 0.31+
+
+- Paragraphs
+- ATX headings (`#` through `######`)
+- Setext headings (`===` and `---` underlines)
+- Fenced code blocks (`` ``` `` and `~~~`, with language info string)
+- Indented code blocks
+- Block quotes (`>`, nested)
+- Ordered lists (`1.`, with start number)
+- Unordered lists (`-`, `*`, `+`)
+- Thematic breaks (`---`, `***`, `___`)
+- Bold (`**` and `__`)
+- Italic (`*` and `_`)
+- Bold + italic (`***`)
+- Inline code (`` ` `` and ``` `` ```)
+- Links `[text](url "title")`
+- Images `![alt](url "title")`
+- Autolinks `<url>`
+- Hard line breaks (trailing `  ` or `\`)
+- Soft line breaks
+- Backslash escapes
+- HTML entities
+
+### Required (Phase 2): GFM Extensions
+
+- Tables (pipe syntax with alignment)
+- Strikethrough (`~~text~~`)
+- Task list items (`- [x]` / `- [ ]`)
+- Autolinks (bare URLs and emails)
+
+### Optional Extensions (Phase 4+)
+
+- Footnotes (`[^ref]` and `[^ref]: definition`)
+- Highlight (`==text==`)
+- Subscript (`~text~`)
+- Superscript (`^text^`)
+- Math: inline `$expr$` and block `$$expr$$`
+- Emoji shortcodes (`:smile:`)
+- Table of contents (`[TOC]`)
+- YAML front matter (`---` delimited)
+- Definition lists
+- Abbreviations
+- Custom containers / admonitions
+
+---
+
+## Serialization & Roundtrip Fidelity
+
+### Critical Requirement: Lossless Roundtrip
+
+The editor MUST preserve the exact markdown source when no edits are made. Specifically:
+
+- Whitespace, indentation, and line endings are preserved (Token `input` is used directly).
+- Choice of `*` vs `_` for emphasis is preserved (stored in `delimiter` field).
+- Choice of `-` vs `*` vs `+` for unordered lists is preserved (stored in `marker` field).
+- Heading style (ATX vs Setext) is preserved (separate AST node types).
+- Blank lines between blocks are preserved (`BlankLineBlock` nodes).
+- Code fence style (`` ``` `` vs `~~~`) is preserved (stored in `fence` field).
+- Link reference definitions are preserved.
+- HTML blocks/inlines are preserved as-is.
+
+When the user makes edits, only the affected region changes. The editor does not reformat the entire document.
+
+### Normalization (Optional, User-Triggered)
+
+Provide an optional `normalize()` method that standardizes the markdown (e.g., consistent heading style, list markers, blank lines). This is never called automatically.
+
+---
+
+## Public API
+
+### `MarkdownEditor` Widget
+
+```dart
+class MarkdownEditor extends StatefulWidget {
+  const MarkdownEditor({
+    super.key,
+    this.initialMarkdown = '',
+    this.controller,
+    this.onChanged,
+    this.onSaved,
+    this.focusNode,
+    this.theme,
+    this.config,
+    this.readOnly = false,
+    this.autofocus = false,
+    this.scrollController,
+    this.scrollPhysics,
+    this.minLines,
+    this.maxLines,
+    this.padding = const EdgeInsets.all(16.0),
+    this.placeholder,
+    this.toolbarBuilder,
+    this.contextMenuBuilder,
+    this.onImageInsert,
+    this.onLinkTap,
+  });
+
+  /// Initial markdown content.
+  final String initialMarkdown;
+
+  /// Optional external controller for programmatic access.
+  final MarkdownEditingController? controller;
+
+  /// Called whenever the markdown content changes.
+  final ValueChanged<String>? onChanged;
+
+  /// Called when the user triggers a save action (Cmd+S).
+  final ValueChanged<String>? onSaved;
+
+  /// Focus node for this editor.
+  final FocusNode? focusNode;
+
+  /// Visual theme for the editor.
+  final MarkdownEditorTheme? theme;
+
+  /// Feature configuration (enabled syntax, shortcuts, etc.).
+  final MarkdownEditorConfig? config;
+
+  /// Whether the editor is read-only (rendered, non-editable).
+  final bool readOnly;
+
+  /// Whether the editor should autofocus on mount.
+  final bool autofocus;
+
+  /// Scroll controller.
+  final ScrollController? scrollController;
+
+  /// Scroll physics.
+  final ScrollPhysics? scrollPhysics;
+
+  /// Min/max visible lines.
+  final int? minLines;
+  final int? maxLines;
+
+  /// Padding around the editor content.
+  final EdgeInsets padding;
+
+  /// Placeholder text shown when editor is empty.
+  final String? placeholder;
+
+  /// Builder for a toolbar widget (receives editor state for toggling).
+  final Widget Function(BuildContext, MarkdownEditorState)? toolbarBuilder;
+
+  /// Builder for the context menu (right-click / long-press).
+  final Widget Function(BuildContext, EditableTextState)? contextMenuBuilder;
+
+  /// Callback when the user inserts an image (for custom upload handling).
+  /// Return the URL/path to use, or null to cancel.
+  final Future<String?> Function(ImageInsertEvent)? onImageInsert;
+
+  /// Callback when the user taps a link in read-only or rendered mode.
+  final void Function(String url)? onLinkTap;
+}
+```
+
+### `MarkdownEditingController`
+
+```dart
+class MarkdownEditingController extends TextEditingController {
+  /// Current markdown content.
+  String get markdown;
+  set markdown(String value);
+
+  /// Parsed document AST (read-only view).
+  MarkdownDocument get document;
+
+  // ─── Inline Format Toggles ───
+
+  /// Toggle bold (`**`) around selection. If no selection, inserts `****` with cursor between.
+  void toggleBold();
+
+  /// Toggle italic (`*`) around selection.
+  void toggleItalic();
+
+  /// Toggle strikethrough (`~~`) around selection.
+  void toggleStrikethrough();
+
+  /// Toggle inline code (`` ` ``) around selection.
+  void toggleInlineCode();
+
+  /// Toggle inline math (`$`) around selection (if enabled in config).
+  void toggleInlineMath();
+
+  /// Toggle highlight (`==`) around selection (if enabled in config).
+  void toggleHighlight();
+
+  // ─── Block Type Setters ───
+
+  /// Set heading level for the current line/block. 0 = paragraph, 1-6 = heading.
+  void setHeadingLevel(int level);
+
+  /// Toggle blockquote prefix for the current block.
+  void toggleBlockquote();
+
+  /// Toggle unordered list for the current block.
+  void toggleUnorderedList();
+
+  /// Toggle ordered list for the current block.
+  void toggleOrderedList();
+
+  /// Toggle task list for the current block.
+  void toggleTaskList();
+
+  /// Insert a fenced code block at the cursor position.
+  void insertCodeBlock({String language = ''});
+
+  /// Insert a thematic break at the cursor position.
+  void insertThematicBreak();
+
+  /// Insert a table at the cursor position.
+  void insertTable({int rows = 3, int cols = 3});
+
+  // ─── Content Insertion ───
+
+  /// Insert a link. If text is selected, wraps it: `[selection](url)`.
+  void insertLink(String text, String url);
+
+  /// Insert an image reference.
+  void insertImage(String alt, String url);
+
+  /// Insert raw text at the cursor position.
+  void insertText(String text);
+
+  // ─── Indentation ───
+
+  /// Indent the current block (for lists: add nesting level, for blockquotes: add `>`).
+  void indent();
+
+  /// Outdent the current block.
+  void outdent();
+
+  // ─── Undo / Redo ───
+
+  void undo();
+  void redo();
+  bool get canUndo;
+  bool get canRedo;
+
+  // ─── Cursor Context Info ───
+
+  /// The set of inline formats active at the cursor position.
+  /// Useful for toolbar button state (pressed/unpressed).
+  Set<InlineType> get activeInlineFormats;
+
+  /// The block type of the block containing the cursor.
+  BlockType get activeBlockType;
+
+  /// The heading level at the cursor (0 if not a heading).
+  int get activeHeadingLevel;
+
+  /// Whether the cursor is inside a code block.
+  bool get isInCodeBlock;
+
+  /// Whether the cursor is inside a blockquote.
+  bool get isInBlockquote;
+
+  /// Whether the cursor is inside a list.
+  bool get isInList;
+
+  // ─── Export ───
+
+  /// Serialize back to markdown string (lossless roundtrip).
+  String toMarkdown();
+
+  /// Convert to HTML string.
+  String toHtml();
+
+  /// Extract plain text (no syntax, no formatting).
+  @override
+  String get text; // already provided by TextEditingController
+}
+```
+
+### `MarkdownEditorConfig`
+
+```dart
+class MarkdownEditorConfig {
+  /// Which markdown extensions to enable beyond CommonMark.
+  final Set<MarkdownExtension> enabledExtensions;
+
+  /// Whether to show line numbers in code blocks.
+  final bool codeBlockLineNumbers;
+
+  /// Whether to enable smart pair completion (auto-close `**`, `` ` ``, etc.).
+  final bool smartPairCompletion;
+
+  /// Whether to enable auto-continuation of lists and blockquotes on Enter.
+  final bool autoContinuation;
+
+  /// Whether to enable drag-and-drop image insertion.
+  final bool enableImageDragDrop;
+
+  /// Whether to enable paste of HTML content converted to markdown.
+  final bool enableHtmlPaste;
+
+  /// Custom keyboard shortcut overrides.
+  final Map<ShortcutActivator, MarkdownEditorAction>? shortcutOverrides;
+
+  /// Maximum image width for rendered images (in logical pixels).
+  final double maxImageWidth;
+
+  /// Placeholder text for empty editor.
+  final String? placeholder;
+
+  const MarkdownEditorConfig({
+    this.enabledExtensions = const {
+      MarkdownExtension.tables,
+      MarkdownExtension.strikethrough,
+      MarkdownExtension.taskLists,
+      MarkdownExtension.autolinks,
+    },
+    this.codeBlockLineNumbers = true,
+    this.smartPairCompletion = true,
+    this.autoContinuation = true,
+    this.enableImageDragDrop = true,
+    this.enableHtmlPaste = true,
+    this.shortcutOverrides,
+    this.maxImageWidth = 600.0,
+    this.placeholder,
+  });
+}
+
+enum MarkdownExtension {
+  tables,
+  strikethrough,
+  taskLists,
+  autolinks,
+  footnotes,
+  highlight,
+  subscript,
+  superscript,
+  math,
+  emoji,
+  tableOfContents,
+  yamlFrontMatter,
+  definitionLists,
+}
+
+enum MarkdownEditorAction {
+  toggleBold,
+  toggleItalic,
+  toggleStrikethrough,
+  toggleInlineCode,
+  toggleInlineMath,
+  toggleHighlight,
+  setHeading1,
+  setHeading2,
+  setHeading3,
+  setHeading4,
+  setHeading5,
+  setHeading6,
+  clearHeading,
+  toggleBlockquote,
+  toggleUnorderedList,
+  toggleOrderedList,
+  toggleTaskList,
+  insertCodeBlock,
+  insertThematicBreak,
+  insertLink,
+  insertImage,
+  indent,
+  outdent,
+  undo,
+  redo,
+  save,
+}
+```
+
+### `MarkdownEditorTheme`
+
+```dart
+class MarkdownEditorTheme {
+  /// Base text style for the editor.
+  final TextStyle baseStyle;
+
+  /// Heading styles (index 0 = H1, index 5 = H6).
+  final List<TextStyle> headingStyles;
+
+  /// Inline formatting styles.
+  final TextStyle boldStyle;
+  final TextStyle italicStyle;
+  final TextStyle inlineCodeStyle;
+  final TextStyle strikethroughStyle;
+  final TextStyle linkStyle;
+  final TextStyle highlightStyle;
+
+  /// Code block styling.
+  final TextStyle codeBlockStyle;
+  final Color codeBlockBackground;
+  final double codeBlockBorderRadius;
+  final Color codeBlockBorderColor;
+
+  /// Blockquote styling.
+  final Color blockquoteBorderColor;
+  final double blockquoteBorderWidth;
+  final TextStyle blockquoteStyle;
+  final Color blockquoteBackground;
+
+  /// Syntax highlighting (revealed mode — syntax delimiters like **, `, #).
+  final TextStyle syntaxDelimiterStyle;
+
+  /// Thematic break styling.
+  final Color thematicBreakColor;
+  final double thematicBreakThickness;
+
+  /// Table styling.
+  final TextStyle tableHeaderStyle;
+  final Color tableBorderColor;
+  final Color tableHeaderBackground;
+  final Color tableAlternateRowBackground;
+
+  /// Selection and cursor.
+  final Color cursorColor;
+  final Color selectionColor;
+  final double cursorWidth;
+
+  /// Placeholder text style.
+  final TextStyle placeholderStyle;
+
+  /// Editor background color.
+  final Color backgroundColor;
+
+  /// Predefined themes.
+  static MarkdownEditorTheme light() => MarkdownEditorTheme(/* ... */);
+  static MarkdownEditorTheme dark() => MarkdownEditorTheme(/* ... */);
+  static MarkdownEditorTheme sepia() => MarkdownEditorTheme(/* ... */);
+
+  /// Create a theme by merging overrides onto a base theme.
+  MarkdownEditorTheme copyWith({/* all fields optional */});
+}
+```
+
+### `ImageInsertEvent`
+
+```dart
+class ImageInsertEvent {
+  /// The source of the image insertion.
+  final ImageInsertSource source;
+
+  /// Raw bytes of the image (for drag-drop and paste).
+  final Uint8List? bytes;
+
+  /// File path (for file picker).
+  final String? filePath;
+
+  /// MIME type if known.
+  final String? mimeType;
+
+  const ImageInsertEvent({
+    required this.source,
+    this.bytes,
+    this.filePath,
+    this.mimeType,
+  });
+}
+
+enum ImageInsertSource {
+  dragDrop,
+  paste,
+  filePicker,
+  toolbar,
+}
+```
+
+---
+
+## Implementation Phases
+
+### Phase 1: Foundation — Parser & Core Rendering
+
+**Goal:** A working editor that can parse basic markdown and render it with the reveal/hide mechanic. No toolbar, no complex blocks.
+
+**PetitParser Grammar (subset):**
+- [ ] Set up PetitParser dependency and `MarkdownGrammarDefinition` skeleton
+- [ ] Block productions: `paragraph`, `atxHeading`, `blankLine`, `thematicBreak`
+- [ ] Inline productions: `plainText`, `bold`, `italic`, `boldItalic`, `inlineCode`, `escapedChar`
+- [ ] `MarkdownParserDefinition` with `.token().map()` overrides for all above productions
+- [ ] Validate grammar with PetitParser `linter()`
+- [ ] Test individual productions with `definition.buildFrom()`
+
+**AST & Document Model:**
+- [ ] `MarkdownNode` base class with `Token` metadata
+- [ ] Block nodes: `ParagraphBlock`, `HeadingBlock`, `BlankLineBlock`, `ThematicBreakBlock`
+- [ ] Inline nodes: `PlainTextInline`, `BoldInline`, `ItalicInline`, `BoldItalicInline`, `InlineCodeInline`, `EscapedCharInline`
+- [ ] `MarkdownDocument` with `blockIndexAtOffset()` and `inlineAtOffset()`
+- [ ] Serialization: `toMarkdown()` using `Token.input` for lossless roundtrip
+
+**Controller & Rendering:**
+- [ ] `MarkdownEditingController` extending `TextEditingController`
+- [ ] Override `buildTextSpan()` with active block detection
+- [ ] `MarkdownRenderEngine.buildRevealedSpan()` — syntax-highlighted raw source
+- [ ] `MarkdownRenderEngine.buildCollapsedSpan()` — rendered styled text
+- [ ] `CursorMapper` — bidirectional offset mapping for reveal/hide transitions
+
+**Editor Widget:**
+- [ ] `MarkdownEditor` stateful widget wrapping `EditableText`
+- [ ] Basic cursor tracking to determine active block
+- [ ] Smooth transitions between revealed and collapsed states
+
+**Infrastructure:**
+- [ ] `MarkdownEditorTheme` with `light()` and `dark()` presets
+- [ ] `UndoRedoManager` with coalescing
+- [ ] Unit tests: parser roundtrip, cursor mapping, span building
+- [ ] Example app with a single `MarkdownEditor` widget
+
+**Acceptance criteria:**
+- Type markdown, see headings render large when cursor leaves, see `##` reappear when cursor enters.
+- Bold/italic/code render styled when cursor is outside, show `**`/`*`/`` ` `` when cursor is inside.
+- Undo/redo works.
+- `parse(source).toMarkdown() == source` for all supported constructs.
+
+---
+
+### Phase 2: Full CommonMark + GFM Syntax
+
+**Goal:** Support all CommonMark and GFM syntax. Complex block rendering via WidgetSpan.
+
+**PetitParser Grammar (additions):**
+- [ ] Block productions: `fencedCodeBlock`, `indentedCodeBlock`, `blockquote` (nested), `unorderedListItem`, `orderedListItem`, `table` (GFM pipes), `setextHeading`
+- [ ] Inline productions: `link`, `image`, `autolink`, `strikethrough`, `hardLineBreak`, `taskCheckbox`
+- [ ] Helper productions: `lineStart`, `listIndent`, `infoString`, `codeBlockContent`, `linkUrl`, `linkTitle`, `tableRow`, `tableDelimiter`
+- [ ] Update `MarkdownParserDefinition` with `.token().map()` for all new productions
+
+**AST Nodes (additions):**
+- [ ] Block nodes: `FencedCodeBlock`, `IndentedCodeBlock`, `BlockquoteBlock`, `ListBlock`, `ListItemBlock`, `TableBlock`, `SetextHeadingBlock`
+- [ ] Inline nodes: `LinkInline`, `ImageInline`, `AutolinkInline`, `StrikethroughInline`, `HardLineBreakInline`
+- [ ] Table support types: `TableRow`, `TableCell`, `TableAlignment`
+
+**Incremental Parsing:**
+- [ ] `IncrementalParseEngine` — detect affected blocks on edit, re-parse only those
+- [ ] Block boundary detection (blank lines, fence markers, heading markers)
+- [ ] Offset adjustment for blocks after the edit region
+
+**Rendering (additions):**
+- [ ] Code blocks: monospace container with optional syntax highlighting (integrate `flutter_highlight` or equivalent)
+- [ ] Code block language detection from info string
+- [ ] Blockquotes: left-border styled container
+- [ ] Lists: bullet/number glyphs with proper indentation
+- [ ] Task lists: interactive checkbox `WidgetSpan`
+- [ ] Tables: `Table` widget via `WidgetSpan`
+- [ ] Images: `Image.network` / `Image.file` via `WidgetSpan` with loading/error states
+- [ ] Thematic breaks: `Divider` via `WidgetSpan`
+- [ ] Links: styled text, tap handler (opens URL or triggers `onLinkTap` callback)
+- [ ] Strikethrough: `TextDecoration.lineThrough`
+
+**Testing:**
+- [ ] CommonMark spec test suite integration (parse each spec example, verify output)
+- [ ] GFM table parsing edge cases (ragged rows, escaped pipes, alignment markers)
+- [ ] Nested blockquotes and lists
+- [ ] Code block with nested backtick sequences
+
+**Acceptance criteria:**
+- All CommonMark 0.31 spec examples parse correctly.
+- GFM tables render as actual table widgets when cursor is outside.
+- Images load and display inline.
+- Task list checkboxes toggle on click.
+- Incremental parsing keeps edit latency under 5ms for single-line edits.
+
+---
+
+### Phase 3: Editing UX & Keyboard Shortcuts
+
+**Goal:** Full keyboard-driven editing experience matching Typora's behavior.
+
+**Keyboard Shortcuts:**
+- [ ] `Ctrl/Cmd + B` — toggle bold
+- [ ] `Ctrl/Cmd + I` — toggle italic
+- [ ] `Ctrl/Cmd + K` — insert/wrap link
+- [ ] `Ctrl/Cmd + `` ` `` ` — toggle inline code
+- [ ] `Ctrl/Cmd + Shift + K` — toggle strikethrough
+- [ ] `Ctrl/Cmd + 1..6` — set heading level
+- [ ] `Ctrl/Cmd + 0` — clear heading
+- [ ] `Ctrl/Cmd + Shift + [` / `]` — outdent/indent
+- [ ] `Ctrl/Cmd + Z` / `Ctrl/Cmd + Shift + Z` — undo/redo
+- [ ] `Ctrl/Cmd + S` — save
+- [ ] `Tab` / `Shift + Tab` — indent/outdent list items
+- [ ] `Ctrl/Cmd + Shift + C` — toggle code block
+- [ ] Platform-aware modifier keys (Cmd on macOS, Ctrl on others)
+
+**Smart Enter Behavior:**
+- [ ] `Enter` in list item → new list item with same marker (auto-increment for ordered)
+- [ ] `Enter` on empty list item → exit list, convert to paragraph
+- [ ] `Enter` in blockquote → continue with `> ` prefix
+- [ ] `Enter` on empty blockquote → exit blockquote
+- [ ] `Enter` in code block → new line within code block
+- [ ] Double `Enter` at end of code block → exit code block
+- [ ] `Enter` in normal paragraph → new paragraph
+
+**Smart Backspace Behavior:**
+- [ ] `Backspace` at start of list item → outdent or convert to paragraph
+- [ ] `Backspace` at start of heading → remove heading prefix
+- [ ] `Backspace` at start of blockquote → remove `>` prefix
+- [ ] `Backspace` at start of block → merge with previous block
+
+**Auto-Completion:**
+- [ ] Smart pair completion (`**`, `*`, `` ` ``, `~~`, `[`, `![`)
+- [ ] Auto-continuation of lists and blockquotes
+- [ ] Auto-detect markdown shortcuts at line start (`# `, `- `, `1. `, `> `, `---`, `` ``` ``)
+
+**Clipboard Handling:**
+- [ ] Cut/copy: copy raw markdown to clipboard, with rich text as secondary format
+- [ ] Paste plain text: insert as-is into current block
+- [ ] Paste HTML: convert to markdown using an HTML-to-markdown converter
+- [ ] Paste image: trigger `onImageInsert` callback, insert `![](url)` on result
+
+**Multi-Block Selection:**
+- [ ] Selection spanning multiple blocks
+- [ ] Cut/copy/delete operations across block boundaries
+- [ ] Formatting operations on multi-block selections (e.g., bold all selected text)
+
+**Context Menu:**
+- [ ] Custom context menu with cut/copy/paste + formatting options
+- [ ] Platform-native context menu integration
+
+**Testing:**
+- [ ] Widget tests for every keyboard shortcut
+- [ ] Widget tests for smart Enter/Backspace in every block context
+- [ ] Integration tests for clipboard operations
+- [ ] Test pair completion doesn't interfere with IME composing
+
+**Acceptance criteria:**
+- All keyboard shortcuts work on macOS, Windows, Linux.
+- Typing `# Hello` + Enter creates a heading and a new paragraph.
+- Typing `- item 1` + Enter creates a second list item.
+- Pressing Enter on an empty `- ` exits the list.
+- Pasting HTML from a web page produces clean markdown.
+
+---
+
+### Phase 4: Toolbar, Extensions & Polish
+
+**Goal:** Production-ready polish, optional extensions, toolbar, accessibility.
+
+**Toolbar:**
+- [ ] `MarkdownToolbar` default widget with configurable buttons
+- [ ] Toolbar items: bold, italic, strikethrough, code, heading dropdown, list toggles, link, image, code block, table, thematic break
+- [ ] Toolbar button state reflects cursor context (`activeInlineFormats`, `activeBlockType`)
+- [ ] Mobile-friendly toolbar (compact, scrollable)
+- [ ] Desktop-friendly toolbar (full-width, icon + text)
+- [ ] `toolbarBuilder` callback for fully custom toolbars
+
+**Optional Extensions (Grammar Additions):**
+- [ ] Math: inline `$expr$` and block `$$expr$$` — render via `flutter_math_fork`
+- [ ] Footnotes: `[^ref]` and `[^ref]: definition` — render as superscript with popup
+- [ ] Highlight: `==text==` — render with background color
+- [ ] Emoji shortcodes: `:smile:` → 😄 — render as Unicode emoji
+- [ ] YAML front matter: `---` delimited block — hidden or collapsible in editor
+- [ ] Subscript `~text~` and superscript `^text^`
+- [ ] Table of contents `[TOC]` — render as a dynamic list of headings
+- [ ] Each extension is a separate PetitParser production, enabled/disabled via `MarkdownEditorConfig.enabledExtensions`
+
+**Image Handling:**
+- [ ] Drag-and-drop image insertion (desktop + web)
+- [ ] Paste image from clipboard
+- [ ] Image resize handles in rendered mode
+- [ ] Image loading indicators and error states
+- [ ] `onImageInsert` callback for custom upload workflows
+
+**Performance Optimization:**
+- [ ] Lazy span building — only build `TextSpan` for visible blocks (viewport + buffer)
+- [ ] `TextPainter` result caching for unchanged blocks
+- [ ] Debounced parsing for very rapid edits
+- [ ] Profile and optimize for 10,000+ line documents
+- [ ] Memory profiling and optimization
+
+**Accessibility:**
+- [ ] Screen reader support: semantic labels for headings, lists, links, images
+- [ ] ARIA-equivalent attributes for web platform
+- [ ] Keyboard navigation without mouse
+- [ ] High-contrast theme variant
+- [ ] Announce formatting changes to screen reader
+
+**Additional Features:**
+- [ ] Find and replace (`Ctrl/Cmd + F`, `Ctrl/Cmd + H`)
+- [ ] Word count / character count / reading time
+- [ ] Spell-check integration (platform-native)
+- [ ] Export to HTML (`toHtml()` method)
+- [ ] `readOnly` mode: fully rendered, non-editable, all blocks collapsed
+- [ ] Sepia theme preset
+- [ ] Smooth animations for reveal/hide transitions (optional, configurable duration)
+- [ ] Code block copy button
+- [ ] Link preview on hover (desktop)
+
+**Platform Testing & Fixes:**
+- [ ] iOS: selection handles, keyboard accessory bar, safe area
+- [ ] Android: IME composition, context menu, back button
+- [ ] macOS: native menu bar integration, trackpad gestures
+- [ ] Windows: touch support, on-screen keyboard
+- [ ] Linux: input method framework (IBus/Fcitx) compatibility
+- [ ] Web: browser selection API, mobile browser quirks
+
+**Testing:**
+- [ ] Golden tests for rendered blocks (pixel-perfect regression)
+- [ ] Performance benchmarks: 1K, 5K, 10K line documents
+- [ ] Accessibility audit
+- [ ] Platform-specific integration tests
+- [ ] Fuzz testing: random edit sequences to catch parser crashes
+
+**Acceptance criteria:**
+- Toolbar reflects current cursor context and all buttons work.
+- Math expressions render correctly (if extension enabled).
+- Editor handles 10,000+ line documents at 60 FPS scrolling.
+- Screen reader can navigate all block types.
+- All 6 target platforms pass integration tests.
+
+---
+
+## Performance Targets
+
+| Metric | Target |
+|---|---|
+| Initial full parse (1,000 lines) | < 50ms |
+| Incremental parse (single line edit) | < 5ms |
+| `buildTextSpan()` for visible content | < 8ms (within 16ms frame budget) |
+| Memory for 10,000 line document | < 50MB |
+| Scroll frame rate | 60 FPS |
+| Time to interactive (cold start) | < 200ms |
+
+### Optimization Strategies
+
+- **Incremental parsing:** `IncrementalParseEngine` re-parses only affected blocks on each edit.
+- **Lazy span building:** Only build `TextSpan` for blocks within the visible viewport (+ buffer above/below).
+- **Text layout caching:** Cache `TextPainter` layout results for unchanged blocks; invalidate on edit or theme change.
+- **Debounced full re-parse:** For very rapid edits (e.g., holding backspace), debounce full document re-parse while keeping cursor-local block up to date.
+- **Isolate parsing (optional):** For initial parse of very large documents, run PetitParser in a separate isolate.
+
+---
+
+## Dependencies
+
+| Package | Version | Purpose | Phase |
+|---|---|---|---|
+| `flutter` | SDK | Framework | 1 |
+| `petitparser` | ^7.0.0 | Parser combinator for markdown grammar | 1 |
+| `flutter_highlight` or `highlight` | latest | Syntax highlighting for code blocks | 2 |
+| `url_launcher` | latest | Opening links in browser | 2 |
+| `flutter_math_fork` | latest | Math expression rendering ($, $$) | 4 |
+| `image_picker` | latest | Image insertion UI on mobile | 4 |
+| `super_clipboard` | latest | Rich clipboard (HTML paste, image paste) | 3 |
+
+**Note on parser choice:** We use PetitParser rather than the `markdown` or `dart_markdown` packages because those produce HTML output and do not provide the source range tracking (`Token` metadata) required for the reveal/hide mechanic. The CommonMark spec test suite should still be used to validate parsing correctness.
+
+---
+
+## File Structure
+
+```
+markdowner/
+├── lib/
+│   ├── markdowner.dart                          # Public API barrel export
+│   ├── src/
+│   │   ├── editor/
+│   │   │   ├── markdown_editor.dart             # Main MarkdownEditor widget
+│   │   │   ├── markdown_editor_state.dart       # State management
+│   │   │   ├── markdown_editing_controller.dart # Controller with buildTextSpan()
+│   │   │   └── markdown_editor_shortcuts.dart   # Keyboard shortcut bindings
+│   │   ├── model/
+│   │   │   ├── markdown_document.dart           # MarkdownDocument class
+│   │   │   ├── markdown_block.dart              # Block-level AST nodes
+│   │   │   ├── markdown_inline.dart             # Inline-level AST nodes
+│   │   │   └── markdown_enums.dart              # BlockType, InlineType, etc.
+│   │   ├── parser/
+│   │   │   ├── markdown_grammar.dart            # MarkdownGrammarDefinition (PetitParser)
+│   │   │   ├── markdown_parser.dart             # MarkdownParserDefinition (AST construction)
+│   │   │   └── incremental_parser.dart          # IncrementalParseEngine
+│   │   ├── render/
+│   │   │   ├── render_engine.dart               # MarkdownRenderEngine
+│   │   │   ├── block_renderers.dart             # Per-block-type rendering functions
+│   │   │   ├── inline_renderers.dart            # Per-inline-type rendering functions
+│   │   │   ├── syntax_highlight.dart            # Code block syntax highlighting
+│   │   │   └── widget_spans.dart                # WidgetSpan builders (images, tables, etc.)
+│   │   ├── theme/
+│   │   │   ├── markdown_editor_theme.dart       # MarkdownEditorTheme class
+│   │   │   └── default_themes.dart              # light(), dark(), sepia() presets
+│   │   ├── config/
+│   │   │   └── markdown_editor_config.dart      # MarkdownEditorConfig, enums
+│   │   ├── toolbar/
+│   │   │   ├── markdown_toolbar.dart            # Default toolbar widget
+│   │   │   └── toolbar_items.dart               # Individual toolbar button widgets
+│   │   └── utils/
+│   │       ├── cursor_mapper.dart               # Revealed ↔ collapsed offset mapping
+│   │       ├── undo_redo.dart                   # UndoRedoManager, MarkdownSnapshot
+│   │       ├── clipboard_handler.dart           # Paste processing (HTML→MD, image)
+│   │       ├── html_converter.dart              # Markdown → HTML export
+│   │       └── markdown_serializer.dart         # AST → markdown string serialization
+├── test/
+│   ├── parser/
+│   │   ├── grammar_test.dart                    # Test individual grammar productions
+│   │   ├── parser_test.dart                     # Test AST construction
+│   │   ├── incremental_parser_test.dart         # Test incremental re-parsing
+│   │   └── commonmark_spec_test.dart            # CommonMark spec test suite
+│   ├── model/
+│   │   ├── roundtrip_test.dart                  # parse(x).toMarkdown() == x
+│   │   └── document_test.dart                   # blockIndexAtOffset, inlineAtOffset
+│   ├── editor/
+│   │   ├── controller_test.dart                 # buildTextSpan, format toggles
+│   │   ├── reveal_hide_test.dart                # Cursor-driven reveal/collapse
+│   │   ├── shortcuts_test.dart                  # Keyboard shortcut widget tests
+│   │   └── smart_edit_test.dart                 # Enter/Backspace/Tab behavior
+│   ├── render/
+│   │   ├── span_builder_test.dart               # Rendered TextSpan correctness
+│   │   └── widget_span_test.dart                # WidgetSpan rendering (images, tables)
+│   └── golden/
+│       └── *.png                                # Golden image regression tests
+├── example/
+│   ├── lib/
+│   │   └── main.dart                            # Example app demonstrating MarkdownEditor
+│   └── pubspec.yaml
+├── pubspec.yaml
+├── README.md
+├── CHANGELOG.md
+└── LICENSE
+```
+
+---
+
+## Open Questions & Risks
+
+1. **Single EditableText vs block-level widgets:** The single `EditableText` approach (Phase 1-3) is simpler but limits what can be rendered inline (no real images, interactive tables). The block-level approach (v2 architecture) is more powerful but requires implementing cross-block editing, selection, and focus management from scratch. **Recommendation:** Start with single `EditableText` for Phase 1-3, evaluate migration to block-level in Phase 4 based on WidgetSpan limitations encountered.
+
+2. **WidgetSpan limitations:** `WidgetSpan` within `EditableText` has known issues on some platforms (inconsistent baseline alignment, selection behavior crossing widget boundaries). If these prove blocking, the block-level architecture becomes necessary earlier.
+
+3. **PetitParser performance for markdown:** PEG parsers can have exponential backtracking on pathological inputs. Markdown's emphasis rules (left-flanking, right-flanking delimiter runs) are particularly tricky. Mitigation: use `.starLazy()` for greedy-reluctant balance, add explicit negative lookaheads, and test with adversarial inputs.
+
+4. **CommonMark emphasis rules:** The CommonMark spec has very detailed rules for how `*` and `_` interact (rule 1-17 in the spec). PetitParser's PEG semantics (ordered choice, first match wins) may not perfectly match these rules without careful production ordering and negative lookaheads.
+
+5. **IME compatibility:** Complex input methods (CJK, emoji pickers) interact with `TextEditingController` in non-trivial ways. Reveal/hide transitions must not break IME composing state. Test extensively with Japanese, Chinese, Korean input.
+
+6. **Large document performance:** Incremental parsing and lazy rendering are essential. Without them, documents over ~1,000 lines will degrade. The `IncrementalParseEngine` is the critical optimization.
+
+7. **Nested constructs:** Deeply nested markdown (blockquotes within lists within blockquotes) is complex to parse and render. PetitParser handles recursion naturally via `ref0()`, but the render engine must handle arbitrary nesting depth.
+
+8. **Platform parity:** `EditableText` behavior differs across platforms (selection handles, context menus, keyboard shortcuts, IME behavior). Test on all 6 target platforms per phase.
+
+9. **Roundtrip fidelity edge cases:** Some markdown constructs have multiple valid representations. The parser must preserve the original representation (using `Token.input`) rather than normalizing.
