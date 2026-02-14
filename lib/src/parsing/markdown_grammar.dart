@@ -57,6 +57,7 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       ref0(italic) |
       ref0(strikethrough) |
       ref0(inlineCode) |
+      ref0(link) |
       ref0(plainText) |
       ref0(fallbackChar);
 
@@ -95,6 +96,26 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
           string('``')) |
       (char('`') & noneOf('`\n').plusString() & char('`'));
 
+  /// Link: `[text](url)` or `[text](url "title")`.
+  Parser link() =>
+      char('[') &
+      ref0(linkText) &
+      char(']') &
+      char('(') &
+      ref0(linkUrl) &
+      ref0(linkTitle).optional() &
+      char(')');
+
+  /// Link text: any characters except `]` and newline.
+  Parser linkText() => noneOf(']\n').plusString();
+
+  /// Link URL: any characters except `)`, space, and newline.
+  Parser linkUrl() => noneOf(') \n').plusString();
+
+  /// Link title: `"title"` with a leading space.
+  Parser linkTitle() =>
+      char(' ') & char('"') & noneOf('"\n').starString() & char('"');
+
   /// Escaped character: backslash followed by a markdown-special character.
   Parser escapedChar() => char('\\') & ref0(markdownSpecialChar);
 
@@ -119,7 +140,7 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       char('~');
 
   /// A run of non-special, non-newline characters.
-  Parser plainText() => noneOf('*_`~\\\n').plusString();
+  Parser plainText() => noneOf('*_`~\\[\n').plusString();
 
   /// Fallback: any single non-newline character that didn't start a construct.
   Parser fallbackChar() => noneOf('\n');

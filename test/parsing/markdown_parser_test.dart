@@ -271,6 +271,48 @@ void main() {
     });
   });
 
+  group('link inline', () {
+    test('[text](url) produces LinkInline', () {
+      final doc = parse('[click](https://example.com)\n');
+      final p = doc.blocks[0] as ParagraphBlock;
+      expect(p.children, hasLength(1));
+      final link = p.children[0] as LinkInline;
+      expect(link.text, 'click');
+      expect(link.url, 'https://example.com');
+      expect(link.title, isNull);
+    });
+
+    test('[text](url "title") captures title', () {
+      final doc = parse('[click](https://example.com "My Title")\n');
+      final p = doc.blocks[0] as ParagraphBlock;
+      final link = p.children[0] as LinkInline;
+      expect(link.text, 'click');
+      expect(link.url, 'https://example.com');
+      expect(link.title, 'My Title');
+    });
+
+    test('link token offsets', () {
+      final doc = parse('x[a](b)y\n');
+      final p = doc.blocks[0] as ParagraphBlock;
+      expect(p.children, hasLength(3));
+      final link = p.children[1] as LinkInline;
+      expect(link.sourceStart, 1);
+      expect(link.sourceStop, 7); // [a](b) = 6 chars starting at 1
+    });
+
+    test('link roundtrips', () {
+      const source = 'See [here](https://example.com) for details\n';
+      final doc = parse(source);
+      expect(doc.toMarkdown(), equals(source));
+    });
+
+    test('link with title roundtrips', () {
+      const source = '[text](url "title")\n';
+      final doc = parse(source);
+      expect(doc.toMarkdown(), equals(source));
+    });
+  });
+
   group('inline coalescing', () {
     test('stray special chars coalesce with adjacent text', () {
       // A lone * that can't form italic should become plain text

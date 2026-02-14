@@ -101,6 +101,15 @@ class CursorMapper {
           // The backslash is the delimiter
           final start = inline.sourceStart - blockStart;
           ranges.add((start, start + 1));
+
+        case LinkInline():
+          final start = inline.sourceStart - blockStart;
+          // Opening `[`
+          ranges.add((start, start + 1));
+          // `](url)` or `](url "title")`
+          final suffixStart = start + 1 + inline.text.length;
+          final end = inline.sourceStop - blockStart;
+          ranges.add((suffixStart, end));
       }
     }
   }

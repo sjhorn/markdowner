@@ -203,3 +203,19 @@ class EscapedCharInline extends MarkdownInline {
 
   EscapedCharInline({required this.character, required super.sourceToken});
 }
+
+// ─── Inline Nodes (Phase 2) ───
+
+/// A link: `[text](url)` or `[text](url "title")`.
+class LinkInline extends MarkdownInline {
+  final String text;
+  final String url;
+  final String? title;
+
+  LinkInline({
+    required this.text,
+    required this.url,
+    this.title,
+    required super.sourceToken,
+  });
+}

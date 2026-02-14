@@ -12,6 +12,7 @@ class MarkdownEditorTheme {
   final TextStyle boldItalicStyle;
   final TextStyle inlineCodeStyle;
   final TextStyle strikethroughStyle;
+  final TextStyle linkStyle;
 
   /// Style for syntax delimiters in revealed mode (muted gray).
   final TextStyle syntaxDelimiterStyle;
@@ -31,6 +32,7 @@ class MarkdownEditorTheme {
     required this.boldItalicStyle,
     required this.inlineCodeStyle,
     required this.strikethroughStyle,
+    required this.linkStyle,
     required this.syntaxDelimiterStyle,
     required this.hiddenSyntaxStyle,
     required this.cursorColor,
@@ -69,6 +71,10 @@ class MarkdownEditorTheme {
       strikethroughStyle: base.copyWith(
         decoration: TextDecoration.lineThrough,
         color: const Color(0xFF888888),
+      ),
+      linkStyle: base.copyWith(
+        color: const Color(0xFF2196F3),
+        decoration: TextDecoration.underline,
       ),
       syntaxDelimiterStyle: base.copyWith(
         color: const Color(0xFFAAAAAA),
@@ -116,6 +122,10 @@ class MarkdownEditorTheme {
         decoration: TextDecoration.lineThrough,
         color: const Color(0xFF888888),
       ),
+      linkStyle: base.copyWith(
+        color: const Color(0xFF64B5F6),
+        decoration: TextDecoration.underline,
+      ),
       syntaxDelimiterStyle: base.copyWith(
         color: const Color(0xFF666666),
       ),
@@ -139,6 +149,7 @@ class MarkdownEditorTheme {
     TextStyle? boldItalicStyle,
     TextStyle? inlineCodeStyle,
     TextStyle? strikethroughStyle,
+    TextStyle? linkStyle,
     TextStyle? syntaxDelimiterStyle,
     TextStyle? hiddenSyntaxStyle,
     Color? cursorColor,
@@ -153,6 +164,7 @@ class MarkdownEditorTheme {
       boldItalicStyle: boldItalicStyle ?? this.boldItalicStyle,
       inlineCodeStyle: inlineCodeStyle ?? this.inlineCodeStyle,
       strikethroughStyle: strikethroughStyle ?? this.strikethroughStyle,
+      linkStyle: linkStyle ?? this.linkStyle,
       syntaxDelimiterStyle: syntaxDelimiterStyle ?? this.syntaxDelimiterStyle,
       hiddenSyntaxStyle: hiddenSyntaxStyle ?? this.hiddenSyntaxStyle,
       cursorColor: cursorColor ?? this.cursorColor,

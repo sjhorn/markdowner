@@ -72,6 +72,9 @@ String _describeInline(MarkdownInline inline) {
     StrikethroughInline() =>
       'Strike([${inline.children.map(_describeInline).join(', ')}])',
     EscapedCharInline() => 'Escaped("${inline.character}")',
+    LinkInline() =>
+      'Link("${_escape(inline.text)}", "${_escape(inline.url)}"'
+          '${inline.title != null ? ', "${_escape(inline.title!)}"' : ''})',
   };
 }
 

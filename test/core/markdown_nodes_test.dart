@@ -182,6 +182,33 @@ void main() {
     });
   });
 
+  group('LinkInline', () {
+    test('stores text, url, and optional title', () {
+      const src = '[text](url "title")';
+      final token = _tok(null, src, 0, 19);
+      final link = LinkInline(
+        text: 'text',
+        url: 'url',
+        title: 'title',
+        sourceToken: token,
+      );
+      expect(link.text, 'text');
+      expect(link.url, 'url');
+      expect(link.title, 'title');
+    });
+
+    test('title can be null', () {
+      const src = '[text](url)';
+      final token = _tok(null, src, 0, 11);
+      final link = LinkInline(
+        text: 'text',
+        url: 'url',
+        sourceToken: token,
+      );
+      expect(link.title, isNull);
+    });
+  });
+
   group('sealed class hierarchy', () {
     test('MarkdownBlock subtypes are MarkdownNode', () {
       final token = _tok(null, '\n', 0, 1);

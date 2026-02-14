@@ -284,6 +284,35 @@ void main() {
     });
   });
 
+  group('link', () {
+    test('matches [text](url)', () {
+      final parser = buildFrom(grammar.link);
+      expect(parser.parse('[click](https://example.com)'), isA<Success>());
+    });
+
+    test('matches [text](url "title")', () {
+      final parser = buildFrom(grammar.link);
+      expect(
+          parser.parse('[click](https://example.com "A title")'),
+          isA<Success>());
+    });
+
+    test('rejects unclosed bracket', () {
+      final parser = buildFrom(grammar.link);
+      expect(parser.parse('[text(url)'), isA<Failure>());
+    });
+
+    test('rejects missing url parens', () {
+      final parser = buildFrom(grammar.link);
+      expect(parser.parse('[text]url'), isA<Failure>());
+    });
+
+    test('link text can contain special chars', () {
+      final parser = buildFrom(grammar.link);
+      expect(parser.parse('[bold **text**](url)'), isA<Success>());
+    });
+  });
+
   group('full document integration', () {
     test('heading + blank + paragraph + thematic break', () {
       final parser = grammar.build();

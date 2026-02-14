@@ -86,6 +86,15 @@ void main() {
       expect(ranges, isEmpty);
     });
 
+    test('link has bracket and url delimiters', () {
+      // [text](url)\n
+      // 0123456789...
+      final doc = parse('[text](url)\n');
+      final ranges = CursorMapper.delimiterRanges(doc.blocks[0]);
+      expect(ranges, contains((0, 1))); // opening [
+      expect(ranges, contains((5, 11))); // ](url)
+    });
+
     test('mixed paragraph has correct ranges', () {
       // "Hello **bold** end\n"
       //  0123456789...

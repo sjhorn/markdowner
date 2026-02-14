@@ -157,6 +157,21 @@ class MarkdownParserDefinition extends MarkdownGrammarDefinition {
       });
 
   @override
+  Parser link() => super.link().token().map((token) {
+        final parts = token.value as List;
+        final text = parts[1] as String;
+        final url = parts[4] as String;
+        final titleParts = parts[5] as List?;
+        final title = titleParts != null ? titleParts[2] as String : null;
+        return LinkInline(
+          text: text,
+          url: url,
+          title: title,
+          sourceToken: token,
+        );
+      });
+
+  @override
   Parser escapedChar() => super.escapedChar().token().map((token) {
         final parts = token.value as List;
         final character = parts[1] as String;

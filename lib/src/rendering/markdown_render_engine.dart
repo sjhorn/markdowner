@@ -188,7 +188,26 @@ class MarkdownRenderEngine {
           TextSpan(text: '\\', style: delimiterStyle),
           TextSpan(text: inline.character, style: contentStyle),
         ];
+
+      case LinkInline():
+        return _buildLinkSpans(inline, delimiterStyle);
     }
+  }
+
+  /// Build spans for a link: collapsed hides `[`, `](url)`, shows text styled.
+  List<TextSpan> _buildLinkSpans(
+    LinkInline inline,
+    TextStyle delimiterStyle,
+  ) {
+    // Source: [text](url) or [text](url "title")
+    final src = inline.sourceText;
+    final textEnd = 1 + inline.text.length; // after [text
+    final suffix = src.substring(textEnd); // ](url) or ](url "title")
+    return [
+      TextSpan(text: '[', style: delimiterStyle),
+      TextSpan(text: inline.text, style: theme.linkStyle),
+      TextSpan(text: suffix, style: delimiterStyle),
+    ];
   }
 
   /// Helper to build open-delimiter + content + close-delimiter spans.

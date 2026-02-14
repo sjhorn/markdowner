@@ -117,6 +117,14 @@ void main() {
       verifyTextInvariant('Hello world');
     });
 
+    test('paragraph with link', () {
+      verifyTextInvariant('See [here](https://example.com) for details\n');
+    });
+
+    test('paragraph with link and title', () {
+      verifyTextInvariant('[click](url "My Title")\n');
+    });
+
     test('heading without trailing newline', () {
       verifyTextInvariant('# Heading');
     });
@@ -167,6 +175,33 @@ void main() {
       expect(children[1].style, equals(theme.inlineCodeStyle));
       expect(children[2].text, equals('`'));
       expect(children[2].style, equals(theme.syntaxDelimiterStyle));
+    });
+  });
+
+  group('link styling', () {
+    test('revealed link shows brackets and url as delimiters', () {
+      final doc = parse('[text](url)\n');
+      final span = engine.buildRevealedSpan(doc.blocks[0], theme.baseStyle);
+      final children = span.children!.cast<TextSpan>();
+      // [ + text + ](url) + \n
+      expect(children[0].text, equals('['));
+      expect(children[0].style, equals(theme.syntaxDelimiterStyle));
+      expect(children[1].text, equals('text'));
+      expect(children[1].style, equals(theme.linkStyle));
+      expect(children[2].text, equals('](url)'));
+      expect(children[2].style, equals(theme.syntaxDelimiterStyle));
+    });
+
+    test('collapsed link hides brackets and url', () {
+      final doc = parse('[text](url)\n');
+      final span = engine.buildCollapsedSpan(doc.blocks[0], theme.baseStyle);
+      final children = span.children!.cast<TextSpan>();
+      expect(children[0].text, equals('['));
+      expect(children[0].style, equals(theme.hiddenSyntaxStyle));
+      expect(children[1].text, equals('text'));
+      expect(children[1].style, equals(theme.linkStyle));
+      expect(children[2].text, equals('](url)'));
+      expect(children[2].style, equals(theme.hiddenSyntaxStyle));
     });
   });
 
