@@ -119,6 +119,14 @@ class CursorMapper {
           final suffixStart = start + 2 + inline.alt.length;
           final end = inline.sourceStop - blockStart;
           ranges.add((suffixStart, end));
+
+        case AutolinkInline():
+          final start = inline.sourceStart - blockStart;
+          final end = inline.sourceStop - blockStart;
+          // Opening `<`
+          ranges.add((start, start + 1));
+          // Closing `>`
+          ranges.add((end - 1, end));
       }
     }
   }

@@ -194,6 +194,13 @@ class MarkdownRenderEngine {
 
       case ImageInline():
         return _buildImageSpans(inline, delimiterStyle, contentStyle);
+
+      case AutolinkInline():
+        return [
+          TextSpan(text: '<', style: delimiterStyle),
+          TextSpan(text: inline.url, style: theme.linkStyle),
+          TextSpan(text: '>', style: delimiterStyle),
+        ];
     }
   }
 

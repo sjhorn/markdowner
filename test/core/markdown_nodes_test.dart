@@ -209,6 +209,15 @@ void main() {
     });
   });
 
+  group('AutolinkInline', () {
+    test('stores url', () {
+      const src = '<https://example.com>';
+      final token = _tok(null, src, 0, 21);
+      final al = AutolinkInline(url: 'https://example.com', sourceToken: token);
+      expect(al.url, 'https://example.com');
+    });
+  });
+
   group('ImageInline', () {
     test('stores alt, url, and optional title', () {
       const src = '![alt](url "title")';

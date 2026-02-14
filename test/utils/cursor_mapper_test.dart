@@ -86,6 +86,15 @@ void main() {
       expect(ranges, isEmpty);
     });
 
+    test('autolink has angle bracket delimiters', () {
+      // <url>\n
+      // 01234
+      final doc = parse('<url>\n');
+      final ranges = CursorMapper.delimiterRanges(doc.blocks[0]);
+      expect(ranges, contains((0, 1))); // opening <
+      expect(ranges, contains((4, 5))); // closing >
+    });
+
     test('image has ![ and url delimiters', () {
       // ![alt](url)\n
       // 0123456789..

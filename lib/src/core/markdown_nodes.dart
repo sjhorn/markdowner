@@ -233,3 +233,10 @@ class ImageInline extends MarkdownInline {
     required super.sourceToken,
   });
 }
+
+/// An autolink: `<url>`.
+class AutolinkInline extends MarkdownInline {
+  final String url;
+
+  AutolinkInline({required this.url, required super.sourceToken});
+}

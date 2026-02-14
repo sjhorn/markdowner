@@ -59,6 +59,7 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       ref0(inlineCode) |
       ref0(image) |
       ref0(link) |
+      ref0(autolink) |
       ref0(plainText) |
       ref0(fallbackChar);
 
@@ -137,6 +138,13 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
   Parser linkTitle() =>
       char(' ') & char('"') & noneOf('"\n').starString() & char('"');
 
+  /// Autolink: `<url>`.
+  Parser autolink() =>
+      char('<') & ref0(autolinkUrl) & char('>');
+
+  /// Autolink URL: any characters except `>`, space, and newline.
+  Parser autolinkUrl() => noneOf('> \n').plusString();
+
   /// Escaped character: backslash followed by a markdown-special character.
   Parser escapedChar() => char('\\') & ref0(markdownSpecialChar);
 
@@ -161,7 +169,7 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       char('~');
 
   /// A run of non-special, non-newline characters.
-  Parser plainText() => noneOf('*_`~\\[!\n').plusString();
+  Parser plainText() => noneOf('*_`~\\[!<\n').plusString();
 
   /// Fallback: any single non-newline character that didn't start a construct.
   Parser fallbackChar() => noneOf('\n');

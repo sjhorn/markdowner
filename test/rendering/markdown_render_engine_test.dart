@@ -133,6 +133,10 @@ void main() {
       verifyTextInvariant('![alt](url "title")\n');
     });
 
+    test('paragraph with autolink', () {
+      verifyTextInvariant('Visit <https://example.com> now\n');
+    });
+
     test('heading without trailing newline', () {
       verifyTextInvariant('# Heading');
     });

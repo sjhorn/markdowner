@@ -284,6 +284,23 @@ void main() {
     });
   });
 
+  group('autolink', () {
+    test('matches <url>', () {
+      final parser = buildFrom(grammar.autolink);
+      expect(parser.parse('<https://example.com>'), isA<Success>());
+    });
+
+    test('rejects unclosed angle bracket', () {
+      final parser = buildFrom(grammar.autolink);
+      expect(parser.parse('<https://example.com'), isA<Failure>());
+    });
+
+    test('rejects empty angle brackets', () {
+      final parser = buildFrom(grammar.autolink);
+      expect(parser.parse('<>'), isA<Failure>());
+    });
+  });
+
   group('image', () {
     test('matches ![alt](url)', () {
       final parser = buildFrom(grammar.image);

@@ -271,6 +271,22 @@ void main() {
     });
   });
 
+  group('autolink inline', () {
+    test('<url> produces AutolinkInline', () {
+      final doc = parse('<https://example.com>\n');
+      final p = doc.blocks[0] as ParagraphBlock;
+      expect(p.children, hasLength(1));
+      final al = p.children[0] as AutolinkInline;
+      expect(al.url, 'https://example.com');
+    });
+
+    test('autolink roundtrips', () {
+      const source = 'Visit <https://example.com> now\n';
+      final doc = parse(source);
+      expect(doc.toMarkdown(), equals(source));
+    });
+  });
+
   group('image inline', () {
     test('![alt](url) produces ImageInline', () {
       final doc = parse('![photo](img.png)\n');

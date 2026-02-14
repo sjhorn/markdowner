@@ -78,6 +78,7 @@ String _describeInline(MarkdownInline inline) {
     ImageInline() =>
       'Image("${_escape(inline.alt)}", "${_escape(inline.url)}"'
           '${inline.title != null ? ', "${_escape(inline.title!)}"' : ''})',
+    AutolinkInline() => 'Autolink("${_escape(inline.url)}")',
   };
 }
 

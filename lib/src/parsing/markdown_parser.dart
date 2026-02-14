@@ -187,6 +187,13 @@ class MarkdownParserDefinition extends MarkdownGrammarDefinition {
       });
 
   @override
+  Parser autolink() => super.autolink().token().map((token) {
+        final parts = token.value as List;
+        final url = parts[1] as String;
+        return AutolinkInline(url: url, sourceToken: token);
+      });
+
+  @override
   Parser escapedChar() => super.escapedChar().token().map((token) {
         final parts = token.value as List;
         final character = parts[1] as String;
