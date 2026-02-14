@@ -102,46 +102,100 @@ That was a thematic break above. Happy editing!
     super.dispose();
   }
 
+  Widget _buildUndoDropdown() {
+    return PopupMenuButton<int>(
+      tooltip: 'Undo history',
+      offset: const Offset(0, kToolbarHeight),
+      onSelected: (index) {
+        _editorKey.currentState?.undoSteps(index + 1);
+        setState(() {});
+      },
+      itemBuilder: (context) {
+        final names = _editorKey.currentState?.undoNames ?? [];
+        if (names.isEmpty) {
+          return [
+            const PopupMenuItem<int>(
+              enabled: false,
+              child: Text('No undo history'),
+            ),
+          ];
+        }
+        return [
+          for (var i = 0; i < names.length; i++)
+            PopupMenuItem<int>(
+              value: i,
+              child: Text(names[i]),
+            ),
+        ];
+      },
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.undo),
+            Icon(Icons.arrow_drop_down, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRedoDropdown() {
+    return PopupMenuButton<int>(
+      tooltip: 'Redo history',
+      offset: const Offset(0, kToolbarHeight),
+      onSelected: (index) {
+        _editorKey.currentState?.redoSteps(index + 1);
+        setState(() {});
+      },
+      itemBuilder: (context) {
+        final names = _editorKey.currentState?.redoNames ?? [];
+        if (names.isEmpty) {
+          return [
+            const PopupMenuItem<int>(
+              enabled: false,
+              child: Text('No redo history'),
+            ),
+          ];
+        }
+        return [
+          for (var i = 0; i < names.length; i++)
+            PopupMenuItem<int>(
+              value: i,
+              child: Text(names[i]),
+            ),
+        ];
+      },
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.redo),
+            Icon(Icons.arrow_drop_down, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Markdowner Editor Demo'),
+        title: Row(
+          children: [
+            Image.asset('assets/markdowner.png', height: 48),
+            Container(width: 10),
+            const Text('markdowner demo'),
+          ],
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.undo),
-            onPressed: () {
-              final state = _editorKey.currentState;
-              if (state == null) return;
-              final snapshot = state.undoRedoManager.undo(
-                _controller.text,
-                _controller.selection,
-              );
-              if (snapshot != null) {
-                _controller.value = TextEditingValue(
-                  text: snapshot.markdown,
-                  selection: snapshot.selection,
-                );
-              }
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.redo),
-            onPressed: () {
-              final state = _editorKey.currentState;
-              if (state == null) return;
-              final snapshot = state.undoRedoManager.redo(
-                _controller.text,
-                _controller.selection,
-              );
-              if (snapshot != null) {
-                _controller.value = TextEditingValue(
-                  text: snapshot.markdown,
-                  selection: snapshot.selection,
-                );
-              }
-            },
-          ),
+          _buildUndoDropdown(),
+          _buildRedoDropdown(),
+          // Push past the debug ribbon.
+          Container(width: 40),
         ],
       ),
       body: MarkdownEditor(

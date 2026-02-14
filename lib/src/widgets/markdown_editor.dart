@@ -56,9 +56,82 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   late UndoRedoManager _undoRedoManager;
   bool _ownsController = false;
   bool _ownsFocusNode = false;
+  bool _isUndoRedoInProgress = false;
 
   MarkdownEditingController get controller => _controller;
   UndoRedoManager get undoRedoManager => _undoRedoManager;
+
+  /// Snapshot names from the undo stack, most recent first.
+  List<String> get undoNames => _undoRedoManager.undoNames;
+
+  /// Snapshot names from the redo stack, most recent first.
+  List<String> get redoNames => _undoRedoManager.redoNames;
+
+  /// Perform undo. Returns true if a state was restored.
+  bool undo() {
+    final snapshot = _undoRedoManager.undo(
+      _controller.text,
+      _controller.selection,
+    );
+    if (snapshot == null) return false;
+    _isUndoRedoInProgress = true;
+    _controller.value = TextEditingValue(
+      text: snapshot.markdown,
+      selection: snapshot.selection,
+    );
+    _isUndoRedoInProgress = false;
+    return true;
+  }
+
+  /// Perform redo. Returns true if a state was restored.
+  bool redo() {
+    final snapshot = _undoRedoManager.redo(
+      _controller.text,
+      _controller.selection,
+    );
+    if (snapshot == null) return false;
+    _isUndoRedoInProgress = true;
+    _controller.value = TextEditingValue(
+      text: snapshot.markdown,
+      selection: snapshot.selection,
+    );
+    _isUndoRedoInProgress = false;
+    return true;
+  }
+
+  /// Perform [count] consecutive undos. Returns true if any state was restored.
+  bool undoSteps(int count) {
+    final snapshot = _undoRedoManager.undoSteps(
+      count,
+      _controller.text,
+      _controller.selection,
+    );
+    if (snapshot == null) return false;
+    _isUndoRedoInProgress = true;
+    _controller.value = TextEditingValue(
+      text: snapshot.markdown,
+      selection: snapshot.selection,
+    );
+    _isUndoRedoInProgress = false;
+    return true;
+  }
+
+  /// Perform [count] consecutive redos. Returns true if any state was restored.
+  bool redoSteps(int count) {
+    final snapshot = _undoRedoManager.redoSteps(
+      count,
+      _controller.text,
+      _controller.selection,
+    );
+    if (snapshot == null) return false;
+    _isUndoRedoInProgress = true;
+    _controller.value = TextEditingValue(
+      text: snapshot.markdown,
+      selection: snapshot.selection,
+    );
+    _isUndoRedoInProgress = false;
+    return true;
+  }
 
   @override
   void initState() {
@@ -83,6 +156,10 @@ class MarkdownEditorState extends State<MarkdownEditor> {
     }
 
     _controller.addListener(_onControllerChanged);
+    _undoRedoManager.setInitialState(
+      _controller.text,
+      _controller.selection,
+    );
   }
 
   @override
@@ -126,10 +203,12 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   }
 
   void _onControllerChanged() {
-    _undoRedoManager.recordChange(
-      _controller.text,
-      _controller.selection,
-    );
+    if (!_isUndoRedoInProgress) {
+      _undoRedoManager.recordChange(
+        _controller.text,
+        _controller.selection,
+      );
+    }
     widget.onChanged?.call(_controller.text);
   }
 
