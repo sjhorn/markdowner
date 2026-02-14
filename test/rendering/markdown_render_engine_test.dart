@@ -181,6 +181,18 @@ void main() {
       verifyTextInvariant('10. tenth item\n');
     });
 
+    test('setext heading level 1', () {
+      verifyTextInvariant('Title\n===\n');
+    });
+
+    test('setext heading level 2', () {
+      verifyTextInvariant('Subtitle\n---\n');
+    });
+
+    test('setext heading with formatting', () {
+      verifyTextInvariant('**Bold** title\n===\n');
+    });
+
     test('heading without trailing newline', () {
       verifyTextInvariant('# Heading');
     });

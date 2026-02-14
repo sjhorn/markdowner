@@ -284,6 +284,33 @@ void main() {
     });
   });
 
+  group('setextHeading', () {
+    test('matches content with = underline', () {
+      final parser = buildFrom(grammar.setextHeading);
+      expect(parser.parse('Title\n===\n'), isA<Success>());
+    });
+
+    test('matches content with - underline', () {
+      final parser = buildFrom(grammar.setextHeading);
+      expect(parser.parse('Title\n---\n'), isA<Success>());
+    });
+
+    test('matches multiple = chars', () {
+      final parser = buildFrom(grammar.setextHeading);
+      expect(parser.parse('Title\n======\n'), isA<Success>());
+    });
+
+    test('underline at end of input', () {
+      final parser = buildFrom(grammar.setextHeading);
+      expect(parser.parse('Title\n==='), isA<Success>());
+    });
+
+    test('content can have inline formatting', () {
+      final parser = buildFrom(grammar.setextHeading);
+      expect(parser.parse('**Bold** title\n===\n'), isA<Success>());
+    });
+  });
+
   group('orderedListItem', () {
     test('matches 1. item', () {
       final parser = buildFrom(grammar.orderedListItem);

@@ -86,6 +86,14 @@ void main() {
       expect(ranges, isEmpty);
     });
 
+    test('setext heading underline is delimiter', () {
+      // "Title\n===\n"
+      // content "Title" = 5 chars, then \n===\n is delimiter
+      final doc = parse('Title\n===\n');
+      final ranges = CursorMapper.delimiterRanges(doc.blocks[0]);
+      expect(ranges, contains((5, 10))); // \n===\n
+    });
+
     test('ordered list item has number+punct delimiter', () {
       // "1. item\n"  prefix = "1. " = 3 chars
       final doc = parse('1. item\n');

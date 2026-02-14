@@ -36,6 +36,14 @@ class CursorMapper {
         // No delimiters
         break;
 
+      case SetextHeadingBlock():
+        _addInlineDelimiterRanges(block.children, blockStart, ranges);
+        // Underline line is delimiter: \nunderline\n or \nunderline<eoi>
+        final contentEnd = block.children.isEmpty
+            ? 0
+            : block.children.last.sourceStop - blockStart;
+        ranges.add((contentEnd, block.sourceText.length));
+
       case OrderedListItemBlock():
         ranges.add((0, block.prefixLength));
         _addInlineDelimiterRanges(block.children, blockStart, ranges);

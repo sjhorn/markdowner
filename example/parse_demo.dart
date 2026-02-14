@@ -73,6 +73,11 @@ String _describeBlock(MarkdownBlock block) {
           'isTask=${block.isTask}, '
           'children=[${block.children.map(_describeInline).join(', ')}], '
           'source=${block.sourceStart}..${block.sourceStop})',
+    SetextHeadingBlock() =>
+      'SetextHeading(level=${block.level}, '
+          'underline="${block.underline}", '
+          'children=[${block.children.map(_describeInline).join(', ')}], '
+          'source=${block.sourceStart}..${block.sourceStop})',
   };
 }
 

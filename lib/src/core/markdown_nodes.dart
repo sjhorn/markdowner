@@ -209,6 +209,21 @@ class OrderedListItemBlock extends MarkdownBlock {
   int get contentStart => sourceStart + prefixLength;
 }
 
+/// A setext heading: content line + underline (`===` or `---`).
+class SetextHeadingBlock extends MarkdownBlock {
+  final int level;
+  final String underline;
+  @override
+  final List<MarkdownInline> children;
+
+  SetextHeadingBlock({
+    required this.level,
+    required this.underline,
+    required this.children,
+    required super.sourceToken,
+  });
+}
+
 // ─── Inline Nodes (Phase 1) ───
 
 /// Plain text with no formatting.

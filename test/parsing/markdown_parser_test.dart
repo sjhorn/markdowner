@@ -271,6 +271,43 @@ void main() {
     });
   });
 
+  group('setext heading', () {
+    test('= underline produces level 1', () {
+      final doc = parse('Title\n===\n');
+      expect(doc.blocks, hasLength(1));
+      final sh = doc.blocks[0] as SetextHeadingBlock;
+      expect(sh.level, 1);
+      expect(sh.underline, '===');
+      expect((sh.children[0] as PlainTextInline).text, 'Title');
+    });
+
+    test('- underline produces level 2', () {
+      final doc = parse('Title\n---\n');
+      expect(doc.blocks, hasLength(1));
+      final sh = doc.blocks[0] as SetextHeadingBlock;
+      expect(sh.level, 2);
+      expect(sh.underline, '---');
+    });
+
+    test('setext heading with inline formatting', () {
+      final doc = parse('**Bold** title\n===\n');
+      final sh = doc.blocks[0] as SetextHeadingBlock;
+      expect(sh.children[0], isA<BoldInline>());
+    });
+
+    test('setext heading roundtrips', () {
+      const source = 'Title\n===\n';
+      final doc = parse(source);
+      expect(doc.toMarkdown(), equals(source));
+    });
+
+    test('setext heading level 2 roundtrips', () {
+      const source = 'Subtitle\n---\n';
+      final doc = parse(source);
+      expect(doc.toMarkdown(), equals(source));
+    });
+  });
+
   group('ordered list item', () {
     test('1. item produces OrderedListItemBlock', () {
       final doc = parse('1. item\n');
@@ -586,25 +623,25 @@ void main() {
   });
 
   group('multi-block document', () {
-    test('heading + blank + paragraph + break', () {
+    test('heading + blank + setext heading (text followed by ---)', () {
+      // "Some text\n---\n" is a setext heading (level 2), not paragraph + break
       final doc = parse('# Title\n\nSome text\n---\n');
-      expect(doc.blocks, hasLength(4));
+      expect(doc.blocks, hasLength(3));
       expect(doc.blocks[0], isA<HeadingBlock>());
       expect(doc.blocks[1], isA<BlankLineBlock>());
-      expect(doc.blocks[2], isA<ParagraphBlock>());
-      expect(doc.blocks[3], isA<ThematicBreakBlock>());
+      expect(doc.blocks[2], isA<SetextHeadingBlock>());
     });
 
     test('all block types', () {
+      // "Text\n---\n" is a setext heading; ***\n and ___\n are thematic breaks
       final doc = parse('# H1\n\n## H2\n\nText\n---\n***\n___\n');
       expect(doc.blocks[0], isA<HeadingBlock>());
       expect(doc.blocks[1], isA<BlankLineBlock>());
       expect(doc.blocks[2], isA<HeadingBlock>());
       expect(doc.blocks[3], isA<BlankLineBlock>());
-      expect(doc.blocks[4], isA<ParagraphBlock>());
+      expect(doc.blocks[4], isA<SetextHeadingBlock>());
       expect(doc.blocks[5], isA<ThematicBreakBlock>());
       expect(doc.blocks[6], isA<ThematicBreakBlock>());
-      expect(doc.blocks[7], isA<ThematicBreakBlock>());
     });
   });
 

@@ -53,6 +53,8 @@ class MarkdownRenderEngine {
       case OrderedListItemBlock():
         return _buildListItemSpan(
             block, block.prefixLength, block.children, baseStyle, delimiterStyle, revealed);
+      case SetextHeadingBlock():
+        return _buildSetextHeadingSpan(block, baseStyle, delimiterStyle, revealed);
     }
   }
 
@@ -212,6 +214,35 @@ class MarkdownRenderEngine {
           TextSpan(text: '>', style: delimiterStyle),
         ];
     }
+  }
+
+  TextSpan _buildSetextHeadingSpan(
+    SetextHeadingBlock block,
+    TextStyle baseStyle,
+    TextStyle delimiterStyle,
+    bool revealed,
+  ) {
+    final headingStyle = theme.headingStyles[block.level - 1];
+    final src = block.sourceText;
+    // Content is everything up to the newline before underline
+    final contentEnd = block.children.isEmpty
+        ? 0
+        : block.children.last.sourceStop - block.sourceStart;
+    final suffix = src.substring(contentEnd); // \nunderline\n
+
+    final inlineSpans = _buildInlineSpanList(
+      block.children,
+      headingStyle,
+      delimiterStyle,
+      revealed,
+    );
+
+    return TextSpan(
+      children: [
+        ...inlineSpans,
+        TextSpan(text: suffix, style: delimiterStyle),
+      ],
+    );
   }
 
   TextSpan _buildListItemSpan(

@@ -118,6 +118,20 @@ class MarkdownParserDefinition extends MarkdownGrammarDefinition {
       });
 
   @override
+  Parser setextHeading() => super.setextHeading().token().map((token) {
+        final parts = token.value as List;
+        final inlines = parts[0] as List;
+        final underline = parts[2] as String;
+        final level = underline[0] == '=' ? 1 : 2;
+        return SetextHeadingBlock(
+          level: level,
+          underline: underline,
+          children: _castInlines(inlines),
+          sourceToken: token,
+        );
+      });
+
+  @override
   Parser paragraph() => super.paragraph().token().map((token) {
         final parts = token.value as List;
         final inlines = parts[0] as List;

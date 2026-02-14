@@ -28,6 +28,7 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       ref0(blockquote) |
       ref0(unorderedListItem) |
       ref0(orderedListItem) |
+      ref0(setextHeading) |
       ref0(paragraph);
 
   /// A blank line is a bare newline character.
@@ -99,6 +100,13 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
   /// Task checkbox: `[x] ` or `[ ] `.
   Parser taskCheckbox() =>
       (string('[x]') | string('[ ]')) & char(' ');
+
+  /// Setext heading: content line + underline (=== or ---).
+  Parser setextHeading() =>
+      ref0(inlineContent) &
+      char('\n') &
+      (char('=').plusString() | char('-').plusString()) &
+      ref0(lineEnding);
 
   /// Paragraph: inline content followed by line ending.
   Parser paragraph() => ref0(inlineContent) & ref0(lineEnding);

@@ -209,6 +209,22 @@ void main() {
     });
   });
 
+  group('SetextHeadingBlock', () {
+    test('stores level, underline, children', () {
+      const src = 'Title\n===\n';
+      final token = _tok(null, src, 0, 10);
+      final sh = SetextHeadingBlock(
+        level: 1,
+        underline: '===',
+        children: [],
+        sourceToken: token,
+      );
+      expect(sh.level, 1);
+      expect(sh.underline, '===');
+      expect(sh.children, isEmpty);
+    });
+  });
+
   group('OrderedListItemBlock', () {
     test('stores number, punctuation and children', () {
       const src = '1. item\n';
