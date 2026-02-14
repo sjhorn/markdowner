@@ -35,6 +35,18 @@ class CursorMapper {
       case BlankLineBlock():
         // No delimiters
         break;
+
+      case FencedCodeBlock():
+        final src = block.sourceText;
+        final fence = block.fence;
+        final infoStr = block.language ?? '';
+        final openLineLen = fence.length + infoStr.length + 1; // +1 for \n
+        // Open fence line is delimiter
+        ranges.add((0, openLineLen));
+        // Close fence line: starts after code
+        final codeLen = block.code.length;
+        final closeStart = openLineLen + codeLen;
+        ranges.add((closeStart, src.length));
     }
 
     return ranges;

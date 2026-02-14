@@ -54,6 +54,10 @@ String _describeBlock(MarkdownBlock block) {
           'source=${block.sourceStart}..${block.sourceStop})',
     BlankLineBlock() =>
       'BlankLineBlock(source=${block.sourceStart}..${block.sourceStop})',
+    FencedCodeBlock() =>
+      'FencedCodeBlock(fence="${block.fence}", '
+          'language=${block.language ?? "null"}, '
+          'source=${block.sourceStart}..${block.sourceStop})',
   };
 }
 

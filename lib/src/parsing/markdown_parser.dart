@@ -43,6 +43,20 @@ class MarkdownParserDefinition extends MarkdownGrammarDefinition {
       });
 
   @override
+  Parser fencedCodeBlock() => super.fencedCodeBlock().token().map((token) {
+        final parts = token.value as List;
+        final fence = parts[0] as String;
+        final infoStr = parts[1] as String?;
+        final code = parts[3] as String;
+        return FencedCodeBlock(
+          fence: fence,
+          language: infoStr,
+          code: code,
+          sourceToken: token,
+        );
+      });
+
+  @override
   Parser thematicBreak() => super.thematicBreak().token().map((token) {
         final parts = token.value as List;
         final marker = parts[0] as String;

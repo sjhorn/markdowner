@@ -284,6 +284,32 @@ void main() {
     });
   });
 
+  group('fencedCodeBlock', () {
+    test('matches backtick fence with language', () {
+      final parser = grammar.build();
+      final result = parser.parse('```dart\nprint("hello");\n```\n');
+      expect(result, isA<Success>());
+    });
+
+    test('matches tilde fence', () {
+      final parser = grammar.build();
+      final result = parser.parse('~~~\ncode\n~~~\n');
+      expect(result, isA<Success>());
+    });
+
+    test('matches fence without language', () {
+      final parser = grammar.build();
+      final result = parser.parse('```\ncode\n```\n');
+      expect(result, isA<Success>());
+    });
+
+    test('matches multi-line code content', () {
+      final parser = grammar.build();
+      final result = parser.parse('```\nline1\nline2\nline3\n```\n');
+      expect(result, isA<Success>());
+    });
+  });
+
   group('autolink', () {
     test('matches <url>', () {
       final parser = buildFrom(grammar.autolink);

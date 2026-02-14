@@ -271,6 +271,56 @@ void main() {
     });
   });
 
+  group('fenced code block', () {
+    test('backtick fence with language', () {
+      final doc = parse('```dart\nprint("hello");\n```\n');
+      expect(doc.blocks, hasLength(1));
+      final cb = doc.blocks[0] as FencedCodeBlock;
+      expect(cb.fence, '```');
+      expect(cb.language, 'dart');
+      expect(cb.code, 'print("hello");');
+    });
+
+    test('backtick fence without language', () {
+      final doc = parse('```\ncode here\n```\n');
+      final cb = doc.blocks[0] as FencedCodeBlock;
+      expect(cb.fence, '```');
+      expect(cb.language, isNull);
+      expect(cb.code, 'code here');
+    });
+
+    test('tilde fence', () {
+      final doc = parse('~~~\ncode\n~~~\n');
+      final cb = doc.blocks[0] as FencedCodeBlock;
+      expect(cb.fence, '~~~');
+      expect(cb.code, 'code');
+    });
+
+    test('multi-line code content', () {
+      final doc = parse('```\nline1\nline2\nline3\n```\n');
+      final cb = doc.blocks[0] as FencedCodeBlock;
+      expect(cb.code, 'line1\nline2\nline3');
+    });
+
+    test('fenced code block roundtrips', () {
+      const source = '```dart\nprint("hello");\n```\n';
+      final doc = parse(source);
+      expect(doc.toMarkdown(), equals(source));
+    });
+
+    test('empty code block roundtrips', () {
+      const source = '```\n\n```\n';
+      final doc = parse(source);
+      expect(doc.toMarkdown(), equals(source));
+    });
+
+    test('fenced code block has no children', () {
+      final doc = parse('```\ncode\n```\n');
+      final cb = doc.blocks[0] as FencedCodeBlock;
+      expect(cb.children, isEmpty);
+    });
+  });
+
   group('autolink inline', () {
     test('<url> produces AutolinkInline', () {
       final doc = parse('<https://example.com>\n');

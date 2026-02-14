@@ -43,6 +43,8 @@ class MarkdownRenderEngine {
         return TextSpan(text: block.sourceText, style: delimiterStyle);
       case BlankLineBlock():
         return TextSpan(text: block.sourceText, style: baseStyle);
+      case FencedCodeBlock():
+        return _buildFencedCodeSpan(block, delimiterStyle, revealed);
     }
   }
 
@@ -202,6 +204,30 @@ class MarkdownRenderEngine {
           TextSpan(text: '>', style: delimiterStyle),
         ];
     }
+  }
+
+  TextSpan _buildFencedCodeSpan(
+    FencedCodeBlock block,
+    TextStyle delimiterStyle,
+    bool revealed,
+  ) {
+    // Source: ```lang\ncode\n```\n
+    // Split into: openFenceLine + code + closeFenceLine
+    final src = block.sourceText;
+    final fence = block.fence;
+    final infoStr = block.language ?? '';
+    final openLine = '$fence$infoStr\n';
+    final code = block.code;
+    final closeStart = openLine.length + code.length;
+    final closeLine = src.substring(closeStart);
+
+    return TextSpan(
+      children: [
+        TextSpan(text: openLine, style: delimiterStyle),
+        TextSpan(text: code, style: theme.codeBlockStyle),
+        TextSpan(text: closeLine, style: delimiterStyle),
+      ],
+    );
   }
 
   /// Build spans for an image: collapsed shows alt text, hides `![` and `](url)`.

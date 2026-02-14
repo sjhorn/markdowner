@@ -137,6 +137,18 @@ void main() {
       verifyTextInvariant('Visit <https://example.com> now\n');
     });
 
+    test('fenced code block', () {
+      verifyTextInvariant('```dart\nprint("hello");\n```\n');
+    });
+
+    test('fenced code block without language', () {
+      verifyTextInvariant('```\ncode\n```\n');
+    });
+
+    test('fenced code block with multi-line code', () {
+      verifyTextInvariant('```\nline1\nline2\n```\n');
+    });
+
     test('heading without trailing newline', () {
       verifyTextInvariant('# Heading');
     });

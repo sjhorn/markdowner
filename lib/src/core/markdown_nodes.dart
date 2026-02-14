@@ -123,6 +123,25 @@ class BlankLineBlock extends MarkdownBlock {
   BlankLineBlock({required super.sourceToken});
 }
 
+// ─── Block Nodes (Phase 2) ───
+
+/// A fenced code block: ``` or ~~~, with optional language info string.
+class FencedCodeBlock extends MarkdownBlock {
+  final String fence;
+  final String? language;
+  final String code;
+
+  @override
+  List<MarkdownInline> get children => const [];
+
+  FencedCodeBlock({
+    required this.fence,
+    this.language,
+    required this.code,
+    required super.sourceToken,
+  });
+}
+
 // ─── Inline Nodes (Phase 1) ───
 
 /// Plain text with no formatting.

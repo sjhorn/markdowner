@@ -86,6 +86,17 @@ void main() {
       expect(ranges, isEmpty);
     });
 
+    test('fenced code block has fence line delimiters', () {
+      // ```dart\ncode\n```\n
+      // openLine = "```dart\n" = 8 chars
+      // code = "code" = 4 chars
+      // closeLine = "\n```\n" = 5 chars
+      final doc = parse('```dart\ncode\n```\n');
+      final ranges = CursorMapper.delimiterRanges(doc.blocks[0]);
+      expect(ranges, contains((0, 8))); // open fence line
+      expect(ranges, contains((12, 17))); // close fence line
+    });
+
     test('autolink has angle bracket delimiters', () {
       // <url>\n
       // 01234

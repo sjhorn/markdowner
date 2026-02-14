@@ -23,6 +23,7 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
   Parser block() =>
       ref0(blankLine) |
       ref0(atxHeading) |
+      ref0(fencedCodeBlock) |
       ref0(thematicBreak) |
       ref0(paragraph);
 
@@ -34,6 +35,32 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       char('#').repeatString(1, 6) &
       char(' ') &
       ref0(inlineContent) &
+      ref0(lineEnding);
+
+  /// Fenced code block: opening fence, optional info string, code, closing fence.
+  Parser fencedCodeBlock() =>
+      ref0(openFence) &
+      ref0(infoString).optional() &
+      char('\n') &
+      ref0(codeContent) &
+      ref0(closeFence);
+
+  /// Opening fence: 3+ backticks or 3+ tildes.
+  Parser openFence() =>
+      (char('`').times(3) & char('`').star()).flatten() |
+      (char('~').times(3) & char('~').star()).flatten();
+
+  /// Info string: non-newline characters after the opening fence.
+  Parser infoString() => noneOf('\n').plusString();
+
+  /// Code content: everything up to (but not including) the closing fence.
+  Parser codeContent() => any().starLazy(ref0(closeFence)).flatten();
+
+  /// Closing fence: newline + 3+ backticks or 3+ tildes + line ending.
+  Parser closeFence() =>
+      char('\n') &
+      ((char('`').times(3) & char('`').star()).flatten() |
+          (char('~').times(3) & char('~').star()).flatten()) &
       ref0(lineEnding);
 
   /// Thematic break: exactly `---`, `***`, or `___` followed by line ending.

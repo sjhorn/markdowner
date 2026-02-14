@@ -13,6 +13,7 @@ class MarkdownEditorTheme {
   final TextStyle inlineCodeStyle;
   final TextStyle strikethroughStyle;
   final TextStyle linkStyle;
+  final TextStyle codeBlockStyle;
 
   /// Style for syntax delimiters in revealed mode (muted gray).
   final TextStyle syntaxDelimiterStyle;
@@ -33,6 +34,7 @@ class MarkdownEditorTheme {
     required this.inlineCodeStyle,
     required this.strikethroughStyle,
     required this.linkStyle,
+    required this.codeBlockStyle,
     required this.syntaxDelimiterStyle,
     required this.hiddenSyntaxStyle,
     required this.cursorColor,
@@ -75,6 +77,11 @@ class MarkdownEditorTheme {
       linkStyle: base.copyWith(
         color: const Color(0xFF2196F3),
         decoration: TextDecoration.underline,
+      ),
+      codeBlockStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 14,
+        backgroundColor: const Color(0xFFF5F5F5),
       ),
       syntaxDelimiterStyle: base.copyWith(
         color: const Color(0xFFAAAAAA),
@@ -126,6 +133,11 @@ class MarkdownEditorTheme {
         color: const Color(0xFF64B5F6),
         decoration: TextDecoration.underline,
       ),
+      codeBlockStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 14,
+        backgroundColor: const Color(0xFF2D2D2D),
+      ),
       syntaxDelimiterStyle: base.copyWith(
         color: const Color(0xFF666666),
       ),
@@ -150,6 +162,7 @@ class MarkdownEditorTheme {
     TextStyle? inlineCodeStyle,
     TextStyle? strikethroughStyle,
     TextStyle? linkStyle,
+    TextStyle? codeBlockStyle,
     TextStyle? syntaxDelimiterStyle,
     TextStyle? hiddenSyntaxStyle,
     Color? cursorColor,
@@ -165,6 +178,7 @@ class MarkdownEditorTheme {
       inlineCodeStyle: inlineCodeStyle ?? this.inlineCodeStyle,
       strikethroughStyle: strikethroughStyle ?? this.strikethroughStyle,
       linkStyle: linkStyle ?? this.linkStyle,
+      codeBlockStyle: codeBlockStyle ?? this.codeBlockStyle,
       syntaxDelimiterStyle: syntaxDelimiterStyle ?? this.syntaxDelimiterStyle,
       hiddenSyntaxStyle: hiddenSyntaxStyle ?? this.hiddenSyntaxStyle,
       cursorColor: cursorColor ?? this.cursorColor,

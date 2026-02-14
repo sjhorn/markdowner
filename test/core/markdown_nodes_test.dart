@@ -209,6 +209,34 @@ void main() {
     });
   });
 
+  group('FencedCodeBlock', () {
+    test('stores fence, language, and code', () {
+      const src = '```dart\ncode\n```\n';
+      final token = _tok(null, src, 0, 17);
+      final cb = FencedCodeBlock(
+        fence: '```',
+        language: 'dart',
+        code: 'code',
+        sourceToken: token,
+      );
+      expect(cb.fence, '```');
+      expect(cb.language, 'dart');
+      expect(cb.code, 'code');
+      expect(cb.children, isEmpty);
+    });
+
+    test('language can be null', () {
+      const src = '```\ncode\n```\n';
+      final token = _tok(null, src, 0, 13);
+      final cb = FencedCodeBlock(
+        fence: '```',
+        code: 'code',
+        sourceToken: token,
+      );
+      expect(cb.language, isNull);
+    });
+  });
+
   group('AutolinkInline', () {
     test('stores url', () {
       const src = '<https://example.com>';
