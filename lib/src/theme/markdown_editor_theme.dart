@@ -95,7 +95,6 @@ class MarkdownEditorTheme {
       hiddenSyntaxStyle: base.copyWith(
         fontSize: 0.01,
         color: const Color(0x00000000),
-        letterSpacing: -0.5,
       ),
       cursorColor: const Color(0xFF1A1A1A),
       selectionColor: const Color(0x40448AFF),
@@ -154,7 +153,6 @@ class MarkdownEditorTheme {
       hiddenSyntaxStyle: base.copyWith(
         fontSize: 0.01,
         color: const Color(0x00000000),
-        letterSpacing: -0.5,
       ),
       cursorColor: const Color(0xFFE0E0E0),
       selectionColor: const Color(0x40448AFF),
