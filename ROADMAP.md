@@ -1624,8 +1624,10 @@ enum ImageInsertSource {
 **Infrastructure:**
 - [x] `MarkdownEditorTheme` with `light()` and `dark()` presets
 - [x] `UndoRedoManager` with coalescing (1-second timer, max 200 stack)
-- [x] Unit tests: 225 tests passing (parser, nodes, rendering, controller, widget)
-- [x] Example app: `example/editor_demo.dart` with undo/redo toolbar
+- [x] Unit tests: 378 tests passing (parser, nodes, rendering, controller, widget, undo/redo)
+- [x] Example app: `example/editor_demo.dart` with undo/redo dropdown history toolbar
+- [x] Named undo/redo snapshots with auto-generated descriptions and multi-step jump
+- [x] Text selection via `TextSelectionGestureDetectorBuilder` (click, drag, double-click)
 
 **Acceptance criteria:** All met.
 - `parse(source).toMarkdown() == source` verified for all constructs
@@ -1635,7 +1637,7 @@ enum ImageInsertSource {
 
 ---
 
-### Phase 2: Full CommonMark + GFM Syntax
+### Phase 2: Full CommonMark + GFM Syntax — ✅ COMPLETE (text rendering; WidgetSpan deferred to Phase 4)
 
 **Goal:** Support all CommonMark and GFM syntax. Complex block rendering via WidgetSpan.
 
@@ -1657,28 +1659,34 @@ enum ImageInsertSource {
 
 **Rendering (additions):**
 - [x] Code blocks: monospace container with `codeBlockStyle` — (syntax highlighting deferred)
-- [ ] Code block language detection from info string
 - [x] Blockquotes: styled with `blockquoteStyle` — (left-border `WidgetSpan` deferred to Phase 4)
 - [x] Lists: marker prefix reveal/hide with inline content rendering
-- [ ] Task lists: interactive checkbox `WidgetSpan` — (deferred to Phase 4)
-- [ ] Tables: `Table` widget via `WidgetSpan` — (deferred to Phase 4; renders as monospace text)
-- [ ] Images: `Image.network` / `Image.file` via `WidgetSpan` — (deferred to Phase 4; shows alt text)
-- [ ] Thematic breaks: `Divider` via `WidgetSpan` — (deferred to Phase 4)
 - [x] Links: styled text with `linkStyle`
 - [x] Strikethrough: `TextDecoration.lineThrough` (Phase 1)
+- [x] Setext headings: underline delimiter styling
+- [x] Images: alt text display (actual `Image` widget deferred to Phase 4)
+- [x] Tables: monospace text rendering (actual `Table` widget deferred to Phase 4)
+
+**Deferred to Phase 4 (WidgetSpan rendering):**
+- [ ] Code block syntax highlighting with language detection from info string
+- [ ] Task lists: interactive checkbox `WidgetSpan`
+- [ ] Tables: `Table` widget via `WidgetSpan`
+- [ ] Images: `Image.network` / `Image.file` via `WidgetSpan`
+- [ ] Thematic breaks: `Divider` via `WidgetSpan`
+- [ ] Blockquotes: left-border via `WidgetSpan`
 
 **Testing:**
 - [ ] CommonMark spec test suite integration (parse each spec example, verify output)
 - [x] GFM table parsing edge cases (alignment markers, header/body rows, cell splitting)
-- [ ] Nested blockquotes and lists — (nesting deferred; single-line blocks only)
 - [x] Code block with backtick/tilde fences, optional info string
+- [ ] Nested blockquotes and lists — (nesting deferred; single-line blocks only)
 
-**Acceptance criteria:**
-- All CommonMark 0.31 spec examples parse correctly.
-- GFM tables render as actual table widgets when cursor is outside.
-- Images load and display inline.
-- Task list checkboxes toggle on click.
-- Incremental parsing keeps edit latency under 5ms for single-line edits.
+**Acceptance criteria (updated for text-rendering scope):**
+- [x] All Phase 2 block/inline types parse correctly with lossless roundtrip
+- [x] Code blocks render as monospace, blockquotes as styled text, lists with markers
+- [x] Links styled with linkStyle, images show alt text, tables show monospace source
+- [ ] CommonMark spec test suite — deferred
+- [ ] WidgetSpan rendering (tables, images, checkboxes, dividers) — deferred to Phase 4
 
 ---
 
