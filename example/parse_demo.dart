@@ -67,6 +67,12 @@ String _describeBlock(MarkdownBlock block) {
           'isTask=${block.isTask}, '
           'children=[${block.children.map(_describeInline).join(', ')}], '
           'source=${block.sourceStart}..${block.sourceStop})',
+    OrderedListItemBlock() =>
+      'OrderedListItem(number=${block.number}, '
+          'punct="${block.punctuation}", '
+          'isTask=${block.isTask}, '
+          'children=[${block.children.map(_describeInline).join(', ')}], '
+          'source=${block.sourceStart}..${block.sourceStop})',
   };
 }
 

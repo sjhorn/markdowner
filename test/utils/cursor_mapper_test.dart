@@ -86,6 +86,20 @@ void main() {
       expect(ranges, isEmpty);
     });
 
+    test('ordered list item has number+punct delimiter', () {
+      // "1. item\n"  prefix = "1. " = 3 chars
+      final doc = parse('1. item\n');
+      final ranges = CursorMapper.delimiterRanges(doc.blocks[0]);
+      expect(ranges, contains((0, 3))); // "1. "
+    });
+
+    test('multi-digit ordered list prefix', () {
+      // "10. item\n"  prefix = "10. " = 4 chars
+      final doc = parse('10. item\n');
+      final ranges = CursorMapper.delimiterRanges(doc.blocks[0]);
+      expect(ranges, contains((0, 4))); // "10. "
+    });
+
     test('unordered list item has marker delimiter', () {
       // "- item\n"  prefix = "- " = 2 chars
       final doc = parse('- item\n');

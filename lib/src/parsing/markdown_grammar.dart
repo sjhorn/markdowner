@@ -27,6 +27,7 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       ref0(thematicBreak) |
       ref0(blockquote) |
       ref0(unorderedListItem) |
+      ref0(orderedListItem) |
       ref0(paragraph);
 
   /// A blank line is a bare newline character.
@@ -77,6 +78,16 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
   Parser unorderedListItem() =>
       ref0(listIndent).optional() &
       (char('-') | char('*') | char('+')) &
+      char(' ') &
+      ref0(taskCheckbox).optional() &
+      ref0(inlineContent) &
+      ref0(lineEnding);
+
+  /// Ordered list item: optional indent + digits + punctuation + space + optional checkbox + content.
+  Parser orderedListItem() =>
+      ref0(listIndent).optional() &
+      digit().plusString() &
+      (char('.') | char(')')) &
       char(' ') &
       ref0(taskCheckbox).optional() &
       ref0(inlineContent) &

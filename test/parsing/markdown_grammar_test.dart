@@ -284,6 +284,38 @@ void main() {
     });
   });
 
+  group('orderedListItem', () {
+    test('matches 1. item', () {
+      final parser = buildFrom(grammar.orderedListItem);
+      expect(parser.parse('1. item\n'), isA<Success>());
+    });
+
+    test('matches 2) item', () {
+      final parser = buildFrom(grammar.orderedListItem);
+      expect(parser.parse('2) item\n'), isA<Success>());
+    });
+
+    test('matches multi-digit number', () {
+      final parser = buildFrom(grammar.orderedListItem);
+      expect(parser.parse('10. tenth\n'), isA<Success>());
+    });
+
+    test('matches with task checkbox', () {
+      final parser = buildFrom(grammar.orderedListItem);
+      expect(parser.parse('1. [x] done\n'), isA<Success>());
+    });
+
+    test('matches with indent', () {
+      final parser = buildFrom(grammar.orderedListItem);
+      expect(parser.parse('  1. nested\n'), isA<Success>());
+    });
+
+    test('rejects missing space', () {
+      final parser = buildFrom(grammar.orderedListItem);
+      expect(parser.parse('1.item\n'), isA<Failure>());
+    });
+  });
+
   group('unorderedListItem', () {
     test('matches - item', () {
       final parser = buildFrom(grammar.unorderedListItem);

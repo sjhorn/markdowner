@@ -95,6 +95,29 @@ class MarkdownParserDefinition extends MarkdownGrammarDefinition {
       });
 
   @override
+  Parser orderedListItem() => super.orderedListItem().token().map((token) {
+        final parts = token.value as List;
+        final indentStr = parts[0] as String?;
+        final numberText = parts[1] as String;
+        final punctuation = parts[2] as String;
+        final checkboxParts = parts[4] as List?;
+        final inlines = parts[5] as List;
+        final isTask = checkboxParts != null;
+        final taskChecked =
+            isTask ? (checkboxParts[0] as String) == '[x]' : null;
+        return OrderedListItemBlock(
+          number: int.parse(numberText),
+          numberText: numberText,
+          punctuation: punctuation,
+          indent: indentStr?.length ?? 0,
+          isTask: isTask,
+          taskChecked: taskChecked,
+          children: _castInlines(inlines),
+          sourceToken: token,
+        );
+      });
+
+  @override
   Parser paragraph() => super.paragraph().token().map((token) {
         final parts = token.value as List;
         final inlines = parts[0] as List;

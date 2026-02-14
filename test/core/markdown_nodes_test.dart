@@ -209,6 +209,53 @@ void main() {
     });
   });
 
+  group('OrderedListItemBlock', () {
+    test('stores number, punctuation and children', () {
+      const src = '1. item\n';
+      final token = _tok(null, src, 0, 8);
+      final li = OrderedListItemBlock(
+        number: 1,
+        numberText: '1',
+        punctuation: '.',
+        children: [],
+        sourceToken: token,
+      );
+      expect(li.number, 1);
+      expect(li.numberText, '1');
+      expect(li.punctuation, '.');
+      expect(li.prefixLength, 3); // "1. "
+      expect(li.contentStart, 3);
+    });
+
+    test('multi-digit number prefix', () {
+      const src = '10. item\n';
+      final token = _tok(null, src, 0, 9);
+      final li = OrderedListItemBlock(
+        number: 10,
+        numberText: '10',
+        punctuation: '.',
+        children: [],
+        sourceToken: token,
+      );
+      expect(li.prefixLength, 4); // "10. "
+    });
+
+    test('task checkbox adds to prefix', () {
+      const src = '1. [x] done\n';
+      final token = _tok(null, src, 0, 12);
+      final li = OrderedListItemBlock(
+        number: 1,
+        numberText: '1',
+        punctuation: '.',
+        isTask: true,
+        taskChecked: true,
+        children: [],
+        sourceToken: token,
+      );
+      expect(li.prefixLength, 7); // "1. [x] "
+    });
+  });
+
   group('UnorderedListItemBlock', () {
     test('stores marker and children', () {
       const src = '- item\n';

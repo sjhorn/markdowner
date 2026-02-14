@@ -36,6 +36,10 @@ class CursorMapper {
         // No delimiters
         break;
 
+      case OrderedListItemBlock():
+        ranges.add((0, block.prefixLength));
+        _addInlineDelimiterRanges(block.children, blockStart, ranges);
+
       case UnorderedListItemBlock():
         // Prefix (indent + marker + space + optional checkbox) is delimiter
         ranges.add((0, block.prefixLength));

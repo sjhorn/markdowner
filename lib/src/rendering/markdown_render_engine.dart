@@ -50,6 +50,9 @@ class MarkdownRenderEngine {
       case UnorderedListItemBlock():
         return _buildListItemSpan(
             block, block.prefixLength, block.children, baseStyle, delimiterStyle, revealed);
+      case OrderedListItemBlock():
+        return _buildListItemSpan(
+            block, block.prefixLength, block.children, baseStyle, delimiterStyle, revealed);
     }
   }
 

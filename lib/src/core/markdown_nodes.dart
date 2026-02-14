@@ -179,6 +179,36 @@ class UnorderedListItemBlock extends MarkdownBlock {
   int get contentStart => sourceStart + prefixLength;
 }
 
+/// An ordered list item: `1. item`, `2) item`, with optional task checkbox.
+class OrderedListItemBlock extends MarkdownBlock {
+  final int number;
+  final String numberText;
+  final String punctuation;
+  final int indent;
+  final bool isTask;
+  final bool? taskChecked;
+  @override
+  final List<MarkdownInline> children;
+
+  OrderedListItemBlock({
+    required this.number,
+    required this.numberText,
+    required this.punctuation,
+    this.indent = 0,
+    this.isTask = false,
+    this.taskChecked,
+    required this.children,
+    required super.sourceToken,
+  });
+
+  /// Length of the prefix before content: indent + numberText + punctuation + space + optional checkbox.
+  int get prefixLength =>
+      indent + numberText.length + 1 + 1 + (isTask ? 4 : 0); // punct(1) + space(1)
+
+  /// Offset where content starts.
+  int get contentStart => sourceStart + prefixLength;
+}
+
 // ─── Inline Nodes (Phase 1) ───
 
 /// Plain text with no formatting.

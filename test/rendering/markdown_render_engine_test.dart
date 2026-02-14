@@ -169,6 +169,18 @@ void main() {
       verifyTextInvariant('- **bold** item\n');
     });
 
+    test('ordered list item', () {
+      verifyTextInvariant('1. item\n');
+    });
+
+    test('ordered list with task checkbox', () {
+      verifyTextInvariant('1. [x] done\n');
+    });
+
+    test('multi-digit ordered list', () {
+      verifyTextInvariant('10. tenth item\n');
+    });
+
     test('heading without trailing newline', () {
       verifyTextInvariant('# Heading');
     });

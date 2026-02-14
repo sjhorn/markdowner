@@ -271,6 +271,53 @@ void main() {
     });
   });
 
+  group('ordered list item', () {
+    test('1. item produces OrderedListItemBlock', () {
+      final doc = parse('1. item\n');
+      expect(doc.blocks, hasLength(1));
+      final li = doc.blocks[0] as OrderedListItemBlock;
+      expect(li.number, 1);
+      expect(li.numberText, '1');
+      expect(li.punctuation, '.');
+      expect(li.indent, 0);
+      expect(li.isTask, false);
+      expect((li.children[0] as PlainTextInline).text, 'item');
+    });
+
+    test('2) uses paren punctuation', () {
+      final doc = parse('2) item\n');
+      final li = doc.blocks[0] as OrderedListItemBlock;
+      expect(li.number, 2);
+      expect(li.punctuation, ')');
+    });
+
+    test('multi-digit number', () {
+      final doc = parse('10. tenth\n');
+      final li = doc.blocks[0] as OrderedListItemBlock;
+      expect(li.number, 10);
+      expect(li.numberText, '10');
+    });
+
+    test('ordered with task checkbox', () {
+      final doc = parse('1. [x] done\n');
+      final li = doc.blocks[0] as OrderedListItemBlock;
+      expect(li.isTask, true);
+      expect(li.taskChecked, true);
+    });
+
+    test('indented ordered item', () {
+      final doc = parse('  1. nested\n');
+      final li = doc.blocks[0] as OrderedListItemBlock;
+      expect(li.indent, 2);
+    });
+
+    test('ordered list roundtrips', () {
+      const source = '1. first\n2. second\n3. third\n';
+      final doc = parse(source);
+      expect(doc.toMarkdown(), equals(source));
+    });
+  });
+
   group('unordered list item', () {
     test('- item produces UnorderedListItemBlock', () {
       final doc = parse('- item\n');
