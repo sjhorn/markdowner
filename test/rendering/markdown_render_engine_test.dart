@@ -157,6 +157,18 @@ void main() {
       verifyTextInvariant('> **bold** and *italic*\n');
     });
 
+    test('unordered list item', () {
+      verifyTextInvariant('- item\n');
+    });
+
+    test('unordered list with task checkbox', () {
+      verifyTextInvariant('- [x] done\n');
+    });
+
+    test('unordered list with inline formatting', () {
+      verifyTextInvariant('- **bold** item\n');
+    });
+
     test('heading without trailing newline', () {
       verifyTextInvariant('# Heading');
     });

@@ -47,6 +47,9 @@ class MarkdownRenderEngine {
         return _buildFencedCodeSpan(block, delimiterStyle, revealed);
       case BlockquoteBlock():
         return _buildBlockquoteSpan(block, delimiterStyle, revealed);
+      case UnorderedListItemBlock():
+        return _buildListItemSpan(
+            block, block.prefixLength, block.children, baseStyle, delimiterStyle, revealed);
     }
   }
 
@@ -206,6 +209,36 @@ class MarkdownRenderEngine {
           TextSpan(text: '>', style: delimiterStyle),
         ];
     }
+  }
+
+  TextSpan _buildListItemSpan(
+    MarkdownBlock block,
+    int prefixLen,
+    List<MarkdownInline> children,
+    TextStyle baseStyle,
+    TextStyle delimiterStyle,
+    bool revealed,
+  ) {
+    final src = block.sourceText;
+    final prefix = src.substring(0, prefixLen);
+    final inlineSpans = _buildInlineSpanList(
+      children,
+      baseStyle,
+      delimiterStyle,
+      revealed,
+    );
+    final contentEnd = children.isEmpty
+        ? prefixLen
+        : children.last.sourceStop - block.sourceStart;
+    final suffix = src.substring(contentEnd);
+
+    return TextSpan(
+      children: [
+        TextSpan(text: prefix, style: delimiterStyle),
+        ...inlineSpans,
+        if (suffix.isNotEmpty) TextSpan(text: suffix, style: baseStyle),
+      ],
+    );
   }
 
   TextSpan _buildBlockquoteSpan(

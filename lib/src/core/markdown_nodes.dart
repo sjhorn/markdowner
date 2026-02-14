@@ -153,6 +153,32 @@ class BlockquoteBlock extends MarkdownBlock {
   int get contentStart => sourceStart + 2;
 }
 
+/// An unordered list item: `- item`, `* item`, `+ item`, with optional task checkbox.
+class UnorderedListItemBlock extends MarkdownBlock {
+  final String marker;
+  final int indent;
+  final bool isTask;
+  final bool? taskChecked;
+  @override
+  final List<MarkdownInline> children;
+
+  UnorderedListItemBlock({
+    required this.marker,
+    this.indent = 0,
+    this.isTask = false,
+    this.taskChecked,
+    required this.children,
+    required super.sourceToken,
+  });
+
+  /// Length of the prefix before content: indent + marker + space + optional checkbox.
+  int get prefixLength =>
+      indent + 1 + 1 + (isTask ? 4 : 0); // marker(1) + space(1) + "[x] "(4)
+
+  /// Offset where content starts.
+  int get contentStart => sourceStart + prefixLength;
+}
+
 // ─── Inline Nodes (Phase 1) ───
 
 /// Plain text with no formatting.

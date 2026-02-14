@@ -86,6 +86,20 @@ void main() {
       expect(ranges, isEmpty);
     });
 
+    test('unordered list item has marker delimiter', () {
+      // "- item\n"  prefix = "- " = 2 chars
+      final doc = parse('- item\n');
+      final ranges = CursorMapper.delimiterRanges(doc.blocks[0]);
+      expect(ranges, contains((0, 2))); // "- "
+    });
+
+    test('unordered list with task checkbox delimiter', () {
+      // "- [x] done\n"  prefix = "- [x] " = 6 chars
+      final doc = parse('- [x] done\n');
+      final ranges = CursorMapper.delimiterRanges(doc.blocks[0]);
+      expect(ranges, contains((0, 6))); // "- [x] "
+    });
+
     test('blockquote has > prefix delimiter', () {
       // > Hello\n
       final doc = parse('> Hello\n');

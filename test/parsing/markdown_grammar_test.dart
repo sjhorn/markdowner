@@ -284,6 +284,43 @@ void main() {
     });
   });
 
+  group('unorderedListItem', () {
+    test('matches - item', () {
+      final parser = buildFrom(grammar.unorderedListItem);
+      expect(parser.parse('- item\n'), isA<Success>());
+    });
+
+    test('matches * item', () {
+      final parser = buildFrom(grammar.unorderedListItem);
+      expect(parser.parse('* item\n'), isA<Success>());
+    });
+
+    test('matches + item', () {
+      final parser = buildFrom(grammar.unorderedListItem);
+      expect(parser.parse('+ item\n'), isA<Success>());
+    });
+
+    test('matches with task checkbox [x]', () {
+      final parser = buildFrom(grammar.unorderedListItem);
+      expect(parser.parse('- [x] done\n'), isA<Success>());
+    });
+
+    test('matches with task checkbox [ ]', () {
+      final parser = buildFrom(grammar.unorderedListItem);
+      expect(parser.parse('- [ ] todo\n'), isA<Success>());
+    });
+
+    test('matches with indent', () {
+      final parser = buildFrom(grammar.unorderedListItem);
+      expect(parser.parse('  - nested\n'), isA<Success>());
+    });
+
+    test('rejects missing space after marker', () {
+      final parser = buildFrom(grammar.unorderedListItem);
+      expect(parser.parse('-item\n'), isA<Failure>());
+    });
+  });
+
   group('blockquote', () {
     test('matches > content', () {
       final parser = buildFrom(grammar.blockquote);

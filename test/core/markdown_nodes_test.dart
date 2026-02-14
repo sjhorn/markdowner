@@ -209,6 +209,48 @@ void main() {
     });
   });
 
+  group('UnorderedListItemBlock', () {
+    test('stores marker and children', () {
+      const src = '- item\n';
+      final token = _tok(null, src, 0, 7);
+      final li = UnorderedListItemBlock(
+        marker: '-',
+        children: [],
+        sourceToken: token,
+      );
+      expect(li.marker, '-');
+      expect(li.prefixLength, 2); // "- "
+      expect(li.contentStart, 2);
+    });
+
+    test('task checkbox adds to prefix', () {
+      const src = '- [x] done\n';
+      final token = _tok(null, src, 0, 11);
+      final li = UnorderedListItemBlock(
+        marker: '-',
+        isTask: true,
+        taskChecked: true,
+        children: [],
+        sourceToken: token,
+      );
+      expect(li.prefixLength, 6); // "- [x] "
+      expect(li.contentStart, 6);
+    });
+
+    test('indent is accounted for', () {
+      const src = '  - item\n';
+      final token = _tok(null, src, 0, 9);
+      final li = UnorderedListItemBlock(
+        marker: '-',
+        indent: 2,
+        children: [],
+        sourceToken: token,
+      );
+      expect(li.prefixLength, 4); // "  - "
+      expect(li.contentStart, 4);
+    });
+  });
+
   group('BlockquoteBlock', () {
     test('stores children and contentStart', () {
       const src = '> Hello\n';

@@ -26,6 +26,7 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       ref0(fencedCodeBlock) |
       ref0(thematicBreak) |
       ref0(blockquote) |
+      ref0(unorderedListItem) |
       ref0(paragraph);
 
   /// A blank line is a bare newline character.
@@ -71,6 +72,22 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
   /// Blockquote: `> ` followed by inline content and line ending.
   Parser blockquote() =>
       string('> ') & ref0(inlineContent) & ref0(lineEnding);
+
+  /// Unordered list item: optional indent + marker + space + optional checkbox + content.
+  Parser unorderedListItem() =>
+      ref0(listIndent).optional() &
+      (char('-') | char('*') | char('+')) &
+      char(' ') &
+      ref0(taskCheckbox).optional() &
+      ref0(inlineContent) &
+      ref0(lineEnding);
+
+  /// List indentation: 2 or 4 spaces.
+  Parser listIndent() => string('    ') | string('  ');
+
+  /// Task checkbox: `[x] ` or `[ ] `.
+  Parser taskCheckbox() =>
+      (string('[x]') | string('[ ]')) & char(' ');
 
   /// Paragraph: inline content followed by line ending.
   Parser paragraph() => ref0(inlineContent) & ref0(lineEnding);

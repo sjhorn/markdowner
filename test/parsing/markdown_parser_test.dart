@@ -271,6 +271,64 @@ void main() {
     });
   });
 
+  group('unordered list item', () {
+    test('- item produces UnorderedListItemBlock', () {
+      final doc = parse('- item\n');
+      expect(doc.blocks, hasLength(1));
+      final li = doc.blocks[0] as UnorderedListItemBlock;
+      expect(li.marker, '-');
+      expect(li.indent, 0);
+      expect(li.isTask, false);
+      expect((li.children[0] as PlainTextInline).text, 'item');
+    });
+
+    test('* item uses star marker', () {
+      final doc = parse('* item\n');
+      final li = doc.blocks[0] as UnorderedListItemBlock;
+      expect(li.marker, '*');
+    });
+
+    test('+ item uses plus marker', () {
+      final doc = parse('+ item\n');
+      final li = doc.blocks[0] as UnorderedListItemBlock;
+      expect(li.marker, '+');
+    });
+
+    test('[x] task checkbox checked', () {
+      final doc = parse('- [x] done\n');
+      final li = doc.blocks[0] as UnorderedListItemBlock;
+      expect(li.isTask, true);
+      expect(li.taskChecked, true);
+      expect((li.children[0] as PlainTextInline).text, 'done');
+    });
+
+    test('[ ] task checkbox unchecked', () {
+      final doc = parse('- [ ] todo\n');
+      final li = doc.blocks[0] as UnorderedListItemBlock;
+      expect(li.isTask, true);
+      expect(li.taskChecked, false);
+    });
+
+    test('indented list item', () {
+      final doc = parse('  - nested\n');
+      final li = doc.blocks[0] as UnorderedListItemBlock;
+      expect(li.indent, 2);
+      expect(li.marker, '-');
+    });
+
+    test('unordered list roundtrips', () {
+      const source = '- first\n- second\n- third\n';
+      final doc = parse(source);
+      expect(doc.toMarkdown(), equals(source));
+    });
+
+    test('task list roundtrips', () {
+      const source = '- [x] done\n- [ ] todo\n';
+      final doc = parse(source);
+      expect(doc.toMarkdown(), equals(source));
+    });
+  });
+
   group('blockquote', () {
     test('> content produces BlockquoteBlock', () {
       final doc = parse('> Hello world\n');

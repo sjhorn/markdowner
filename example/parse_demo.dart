@@ -62,6 +62,11 @@ String _describeBlock(MarkdownBlock block) {
       'BlockquoteBlock('
           'children=[${block.children.map(_describeInline).join(', ')}], '
           'source=${block.sourceStart}..${block.sourceStop})',
+    UnorderedListItemBlock() =>
+      'UnorderedListItem(marker="${block.marker}", '
+          'isTask=${block.isTask}, '
+          'children=[${block.children.map(_describeInline).join(', ')}], '
+          'source=${block.sourceStart}..${block.sourceStop})',
   };
 }
 
