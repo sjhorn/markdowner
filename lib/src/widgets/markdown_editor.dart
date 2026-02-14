@@ -54,6 +54,9 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   late MarkdownEditingController _controller;
   late FocusNode _focusNode;
   late UndoRedoManager _undoRedoManager;
+  final GlobalKey<EditableTextState> _editableKey = GlobalKey();
+  late _TextSelectionDelegate _selectionDelegate;
+  late TextSelectionGestureDetectorBuilder _gestureDetectorBuilder;
   bool _ownsController = false;
   bool _ownsFocusNode = false;
   bool _isUndoRedoInProgress = false;
@@ -137,6 +140,9 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   void initState() {
     super.initState();
     _undoRedoManager = UndoRedoManager();
+    _selectionDelegate = _TextSelectionDelegate(_editableKey);
+    _gestureDetectorBuilder =
+        TextSelectionGestureDetectorBuilder(delegate: _selectionDelegate);
 
     if (widget.controller != null) {
       _controller = widget.controller!;
@@ -227,18 +233,37 @@ class MarkdownEditorState extends State<MarkdownEditor> {
     return Container(
       color: theme.backgroundColor,
       padding: widget.padding,
-      child: EditableText(
-        controller: _controller,
-        focusNode: _focusNode,
-        style: theme.baseStyle,
-        cursorColor: theme.cursorColor,
-        selectionColor: theme.selectionColor,
-        backgroundCursorColor: theme.cursorColor.withValues(alpha: 0.1),
-        readOnly: widget.readOnly,
-        autofocus: widget.autofocus,
-        maxLines: null,
-        keyboardType: TextInputType.multiline,
+      child: _gestureDetectorBuilder.buildGestureDetector(
+        behavior: HitTestBehavior.translucent,
+        child: EditableText(
+          key: _editableKey,
+          rendererIgnoresPointer: true,
+          controller: _controller,
+          focusNode: _focusNode,
+          style: theme.baseStyle,
+          cursorColor: theme.cursorColor,
+          selectionColor: theme.selectionColor,
+          backgroundCursorColor: theme.cursorColor.withValues(alpha: 0.1),
+          readOnly: widget.readOnly,
+          autofocus: widget.autofocus,
+          maxLines: null,
+          keyboardType: TextInputType.multiline,
+        ),
       ),
     );
   }
+}
+
+class _TextSelectionDelegate
+    extends TextSelectionGestureDetectorBuilderDelegate {
+  @override
+  final GlobalKey<EditableTextState> editableTextKey;
+
+  _TextSelectionDelegate(this.editableTextKey);
+
+  @override
+  bool get forcePressEnabled => true;
+
+  @override
+  bool get selectionEnabled => true;
 }
