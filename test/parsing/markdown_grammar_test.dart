@@ -284,6 +284,28 @@ void main() {
     });
   });
 
+  group('image', () {
+    test('matches ![alt](url)', () {
+      final parser = buildFrom(grammar.image);
+      expect(parser.parse('![photo](img.png)'), isA<Success>());
+    });
+
+    test('matches ![alt](url "title")', () {
+      final parser = buildFrom(grammar.image);
+      expect(parser.parse('![photo](img.png "A photo")'), isA<Success>());
+    });
+
+    test('rejects missing !', () {
+      final parser = buildFrom(grammar.image);
+      expect(parser.parse('[alt](url)'), isA<Failure>());
+    });
+
+    test('rejects empty alt', () {
+      final parser = buildFrom(grammar.image);
+      expect(parser.parse('![](url)'), isA<Failure>());
+    });
+  });
+
   group('link', () {
     test('matches [text](url)', () {
       final parser = buildFrom(grammar.link);

@@ -219,3 +219,17 @@ class LinkInline extends MarkdownInline {
     required super.sourceToken,
   });
 }
+
+/// An image: `![alt](url)` or `![alt](url "title")`.
+class ImageInline extends MarkdownInline {
+  final String alt;
+  final String url;
+  final String? title;
+
+  ImageInline({
+    required this.alt,
+    required this.url,
+    this.title,
+    required super.sourceToken,
+  });
+}

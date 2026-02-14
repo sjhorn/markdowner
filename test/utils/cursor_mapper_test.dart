@@ -86,6 +86,15 @@ void main() {
       expect(ranges, isEmpty);
     });
 
+    test('image has ![ and url delimiters', () {
+      // ![alt](url)\n
+      // 0123456789..
+      final doc = parse('![alt](url)\n');
+      final ranges = CursorMapper.delimiterRanges(doc.blocks[0]);
+      expect(ranges, contains((0, 2))); // opening ![
+      expect(ranges, contains((5, 11))); // ](url)
+    });
+
     test('link has bracket and url delimiters', () {
       // [text](url)\n
       // 0123456789...

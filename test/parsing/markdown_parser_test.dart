@@ -271,6 +271,39 @@ void main() {
     });
   });
 
+  group('image inline', () {
+    test('![alt](url) produces ImageInline', () {
+      final doc = parse('![photo](img.png)\n');
+      final p = doc.blocks[0] as ParagraphBlock;
+      expect(p.children, hasLength(1));
+      final img = p.children[0] as ImageInline;
+      expect(img.alt, 'photo');
+      expect(img.url, 'img.png');
+      expect(img.title, isNull);
+    });
+
+    test('![alt](url "title") captures title', () {
+      final doc = parse('![photo](img.png "A photo")\n');
+      final p = doc.blocks[0] as ParagraphBlock;
+      final img = p.children[0] as ImageInline;
+      expect(img.alt, 'photo');
+      expect(img.url, 'img.png');
+      expect(img.title, 'A photo');
+    });
+
+    test('image roundtrips', () {
+      const source = 'See ![photo](img.png) here\n';
+      final doc = parse(source);
+      expect(doc.toMarkdown(), equals(source));
+    });
+
+    test('image with title roundtrips', () {
+      const source = '![alt](url "title")\n';
+      final doc = parse(source);
+      expect(doc.toMarkdown(), equals(source));
+    });
+  });
+
   group('link inline', () {
     test('[text](url) produces LinkInline', () {
       final doc = parse('[click](https://example.com)\n');

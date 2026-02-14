@@ -125,6 +125,14 @@ void main() {
       verifyTextInvariant('[click](url "My Title")\n');
     });
 
+    test('paragraph with image', () {
+      verifyTextInvariant('See ![photo](img.png) here\n');
+    });
+
+    test('paragraph with image and title', () {
+      verifyTextInvariant('![alt](url "title")\n');
+    });
+
     test('heading without trailing newline', () {
       verifyTextInvariant('# Heading');
     });

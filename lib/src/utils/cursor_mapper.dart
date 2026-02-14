@@ -110,6 +110,15 @@ class CursorMapper {
           final suffixStart = start + 1 + inline.text.length;
           final end = inline.sourceStop - blockStart;
           ranges.add((suffixStart, end));
+
+        case ImageInline():
+          final start = inline.sourceStart - blockStart;
+          // Opening `![`
+          ranges.add((start, start + 2));
+          // `](url)` or `](url "title")`
+          final suffixStart = start + 2 + inline.alt.length;
+          final end = inline.sourceStop - blockStart;
+          ranges.add((suffixStart, end));
       }
     }
   }

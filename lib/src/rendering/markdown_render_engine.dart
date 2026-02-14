@@ -191,7 +191,27 @@ class MarkdownRenderEngine {
 
       case LinkInline():
         return _buildLinkSpans(inline, delimiterStyle);
+
+      case ImageInline():
+        return _buildImageSpans(inline, delimiterStyle, contentStyle);
     }
+  }
+
+  /// Build spans for an image: collapsed shows alt text, hides `![` and `](url)`.
+  List<TextSpan> _buildImageSpans(
+    ImageInline inline,
+    TextStyle delimiterStyle,
+    TextStyle contentStyle,
+  ) {
+    // Source: ![alt](url) or ![alt](url "title")
+    final src = inline.sourceText;
+    final altEnd = 2 + inline.alt.length; // after ![alt
+    final suffix = src.substring(altEnd); // ](url) or ](url "title")
+    return [
+      TextSpan(text: '![', style: delimiterStyle),
+      TextSpan(text: inline.alt, style: contentStyle),
+      TextSpan(text: suffix, style: delimiterStyle),
+    ];
   }
 
   /// Build spans for a link: collapsed hides `[`, `](url)`, shows text styled.

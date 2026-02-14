@@ -209,6 +209,33 @@ void main() {
     });
   });
 
+  group('ImageInline', () {
+    test('stores alt, url, and optional title', () {
+      const src = '![alt](url "title")';
+      final token = _tok(null, src, 0, 19);
+      final img = ImageInline(
+        alt: 'alt',
+        url: 'url',
+        title: 'title',
+        sourceToken: token,
+      );
+      expect(img.alt, 'alt');
+      expect(img.url, 'url');
+      expect(img.title, 'title');
+    });
+
+    test('title can be null', () {
+      const src = '![alt](url)';
+      final token = _tok(null, src, 0, 11);
+      final img = ImageInline(
+        alt: 'alt',
+        url: 'url',
+        sourceToken: token,
+      );
+      expect(img.title, isNull);
+    });
+  });
+
   group('sealed class hierarchy', () {
     test('MarkdownBlock subtypes are MarkdownNode', () {
       final token = _tok(null, '\n', 0, 1);

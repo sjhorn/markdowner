@@ -57,6 +57,7 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       ref0(italic) |
       ref0(strikethrough) |
       ref0(inlineCode) |
+      ref0(image) |
       ref0(link) |
       ref0(plainText) |
       ref0(fallbackChar);
@@ -95,6 +96,26 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
           noneOf('\n').plusLazy(string('``')).flatten() &
           string('``')) |
       (char('`') & noneOf('`\n').plusString() & char('`'));
+
+  /// Image: `![alt](url)` or `![alt](url "title")`.
+  Parser image() =>
+      string('![') &
+      ref0(imageAlt) &
+      char(']') &
+      char('(') &
+      ref0(imageUrl) &
+      ref0(imageTitle).optional() &
+      char(')');
+
+  /// Image alt text: any characters except `]` and newline.
+  Parser imageAlt() => noneOf(']\n').plusString();
+
+  /// Image URL: any characters except `)`, space, and newline.
+  Parser imageUrl() => noneOf(') \n').plusString();
+
+  /// Image title: `"title"` with a leading space.
+  Parser imageTitle() =>
+      char(' ') & char('"') & noneOf('"\n').starString() & char('"');
 
   /// Link: `[text](url)` or `[text](url "title")`.
   Parser link() =>
@@ -140,7 +161,7 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       char('~');
 
   /// A run of non-special, non-newline characters.
-  Parser plainText() => noneOf('*_`~\\[\n').plusString();
+  Parser plainText() => noneOf('*_`~\\[!\n').plusString();
 
   /// Fallback: any single non-newline character that didn't start a construct.
   Parser fallbackChar() => noneOf('\n');
