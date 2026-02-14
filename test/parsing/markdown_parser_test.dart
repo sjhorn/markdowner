@@ -271,6 +271,34 @@ void main() {
     });
   });
 
+  group('blockquote', () {
+    test('> content produces BlockquoteBlock', () {
+      final doc = parse('> Hello world\n');
+      expect(doc.blocks, hasLength(1));
+      final bq = doc.blocks[0] as BlockquoteBlock;
+      expect(bq.children, hasLength(1));
+      expect((bq.children[0] as PlainTextInline).text, 'Hello world');
+    });
+
+    test('blockquote with inline formatting', () {
+      final doc = parse('> **bold** text\n');
+      final bq = doc.blocks[0] as BlockquoteBlock;
+      expect(bq.children[0], isA<BoldInline>());
+    });
+
+    test('blockquote contentStart', () {
+      final doc = parse('> Hello\n');
+      final bq = doc.blocks[0] as BlockquoteBlock;
+      expect(bq.contentStart, 2); // after "> "
+    });
+
+    test('blockquote roundtrips', () {
+      const source = '> Some quoted text\n';
+      final doc = parse(source);
+      expect(doc.toMarkdown(), equals(source));
+    });
+  });
+
   group('fenced code block', () {
     test('backtick fence with language', () {
       final doc = parse('```dart\nprint("hello");\n```\n');

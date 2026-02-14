@@ -142,6 +142,17 @@ class FencedCodeBlock extends MarkdownBlock {
   });
 }
 
+/// A blockquote line: `> content`.
+class BlockquoteBlock extends MarkdownBlock {
+  @override
+  final List<MarkdownInline> children;
+
+  BlockquoteBlock({required this.children, required super.sourceToken});
+
+  /// Offset where content starts (after `> `).
+  int get contentStart => sourceStart + 2;
+}
+
 // ─── Inline Nodes (Phase 1) ───
 
 /// Plain text with no formatting.

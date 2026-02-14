@@ -45,6 +45,8 @@ class MarkdownRenderEngine {
         return TextSpan(text: block.sourceText, style: baseStyle);
       case FencedCodeBlock():
         return _buildFencedCodeSpan(block, delimiterStyle, revealed);
+      case BlockquoteBlock():
+        return _buildBlockquoteSpan(block, delimiterStyle, revealed);
     }
   }
 
@@ -204,6 +206,33 @@ class MarkdownRenderEngine {
           TextSpan(text: '>', style: delimiterStyle),
         ];
     }
+  }
+
+  TextSpan _buildBlockquoteSpan(
+    BlockquoteBlock block,
+    TextStyle delimiterStyle,
+    bool revealed,
+  ) {
+    final contentStyle = theme.blockquoteStyle;
+    final inlineSpans = _buildInlineSpanList(
+      block.children,
+      contentStyle,
+      delimiterStyle,
+      revealed,
+    );
+    // Trailing newline after last inline
+    final contentEnd = block.children.isEmpty
+        ? 0
+        : block.children.last.sourceStop - block.sourceStart;
+    final suffix = block.sourceText.substring(contentEnd);
+
+    return TextSpan(
+      children: [
+        TextSpan(text: '> ', style: delimiterStyle),
+        ...inlineSpans,
+        if (suffix.isNotEmpty) TextSpan(text: suffix, style: contentStyle),
+      ],
+    );
   }
 
   TextSpan _buildFencedCodeSpan(

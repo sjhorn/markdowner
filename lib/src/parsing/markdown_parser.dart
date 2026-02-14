@@ -64,6 +64,16 @@ class MarkdownParserDefinition extends MarkdownGrammarDefinition {
       });
 
   @override
+  Parser blockquote() => super.blockquote().token().map((token) {
+        final parts = token.value as List;
+        final inlines = parts[1] as List;
+        return BlockquoteBlock(
+          children: _castInlines(inlines),
+          sourceToken: token,
+        );
+      });
+
+  @override
   Parser paragraph() => super.paragraph().token().map((token) {
         final parts = token.value as List;
         final inlines = parts[0] as List;

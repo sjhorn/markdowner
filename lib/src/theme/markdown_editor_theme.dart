@@ -14,6 +14,7 @@ class MarkdownEditorTheme {
   final TextStyle strikethroughStyle;
   final TextStyle linkStyle;
   final TextStyle codeBlockStyle;
+  final TextStyle blockquoteStyle;
 
   /// Style for syntax delimiters in revealed mode (muted gray).
   final TextStyle syntaxDelimiterStyle;
@@ -35,6 +36,7 @@ class MarkdownEditorTheme {
     required this.strikethroughStyle,
     required this.linkStyle,
     required this.codeBlockStyle,
+    required this.blockquoteStyle,
     required this.syntaxDelimiterStyle,
     required this.hiddenSyntaxStyle,
     required this.cursorColor,
@@ -82,6 +84,10 @@ class MarkdownEditorTheme {
         fontFamily: 'monospace',
         fontSize: 14,
         backgroundColor: const Color(0xFFF5F5F5),
+      ),
+      blockquoteStyle: base.copyWith(
+        fontStyle: FontStyle.italic,
+        color: const Color(0xFF666666),
       ),
       syntaxDelimiterStyle: base.copyWith(
         color: const Color(0xFFAAAAAA),
@@ -138,6 +144,10 @@ class MarkdownEditorTheme {
         fontSize: 14,
         backgroundColor: const Color(0xFF2D2D2D),
       ),
+      blockquoteStyle: base.copyWith(
+        fontStyle: FontStyle.italic,
+        color: const Color(0xFF999999),
+      ),
       syntaxDelimiterStyle: base.copyWith(
         color: const Color(0xFF666666),
       ),
@@ -163,6 +173,7 @@ class MarkdownEditorTheme {
     TextStyle? strikethroughStyle,
     TextStyle? linkStyle,
     TextStyle? codeBlockStyle,
+    TextStyle? blockquoteStyle,
     TextStyle? syntaxDelimiterStyle,
     TextStyle? hiddenSyntaxStyle,
     Color? cursorColor,
@@ -179,6 +190,7 @@ class MarkdownEditorTheme {
       strikethroughStyle: strikethroughStyle ?? this.strikethroughStyle,
       linkStyle: linkStyle ?? this.linkStyle,
       codeBlockStyle: codeBlockStyle ?? this.codeBlockStyle,
+      blockquoteStyle: blockquoteStyle ?? this.blockquoteStyle,
       syntaxDelimiterStyle: syntaxDelimiterStyle ?? this.syntaxDelimiterStyle,
       hiddenSyntaxStyle: hiddenSyntaxStyle ?? this.hiddenSyntaxStyle,
       cursorColor: cursorColor ?? this.cursorColor,

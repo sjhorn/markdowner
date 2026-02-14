@@ -36,6 +36,11 @@ class CursorMapper {
         // No delimiters
         break;
 
+      case BlockquoteBlock():
+        // The `> ` prefix (2 chars) is a delimiter
+        ranges.add((0, 2));
+        _addInlineDelimiterRanges(block.children, blockStart, ranges);
+
       case FencedCodeBlock():
         final src = block.sourceText;
         final fence = block.fence;

@@ -149,6 +149,14 @@ void main() {
       verifyTextInvariant('```\nline1\nline2\n```\n');
     });
 
+    test('blockquote', () {
+      verifyTextInvariant('> Hello world\n');
+    });
+
+    test('blockquote with inline formatting', () {
+      verifyTextInvariant('> **bold** and *italic*\n');
+    });
+
     test('heading without trailing newline', () {
       verifyTextInvariant('# Heading');
     });

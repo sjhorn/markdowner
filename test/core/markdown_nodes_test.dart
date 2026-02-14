@@ -209,6 +209,16 @@ void main() {
     });
   });
 
+  group('BlockquoteBlock', () {
+    test('stores children and contentStart', () {
+      const src = '> Hello\n';
+      final token = _tok(null, src, 0, 8);
+      final bq = BlockquoteBlock(children: [], sourceToken: token);
+      expect(bq.contentStart, 2);
+      expect(bq.children, isEmpty);
+    });
+  });
+
   group('FencedCodeBlock', () {
     test('stores fence, language, and code', () {
       const src = '```dart\ncode\n```\n';

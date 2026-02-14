@@ -284,6 +284,28 @@ void main() {
     });
   });
 
+  group('blockquote', () {
+    test('matches > content', () {
+      final parser = buildFrom(grammar.blockquote);
+      expect(parser.parse('> Hello world\n'), isA<Success>());
+    });
+
+    test('matches at end of input', () {
+      final parser = buildFrom(grammar.blockquote);
+      expect(parser.parse('> Hello'), isA<Success>());
+    });
+
+    test('rejects missing space after >', () {
+      final parser = buildFrom(grammar.blockquote);
+      expect(parser.parse('>Hello\n'), isA<Failure>());
+    });
+
+    test('content can have inline formatting', () {
+      final parser = buildFrom(grammar.blockquote);
+      expect(parser.parse('> **bold** text\n'), isA<Success>());
+    });
+  });
+
   group('fencedCodeBlock', () {
     test('matches backtick fence with language', () {
       final parser = grammar.build();

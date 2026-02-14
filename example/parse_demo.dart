@@ -58,6 +58,10 @@ String _describeBlock(MarkdownBlock block) {
       'FencedCodeBlock(fence="${block.fence}", '
           'language=${block.language ?? "null"}, '
           'source=${block.sourceStart}..${block.sourceStop})',
+    BlockquoteBlock() =>
+      'BlockquoteBlock('
+          'children=[${block.children.map(_describeInline).join(', ')}], '
+          'source=${block.sourceStart}..${block.sourceStop})',
   };
 }
 

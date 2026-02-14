@@ -25,6 +25,7 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       ref0(atxHeading) |
       ref0(fencedCodeBlock) |
       ref0(thematicBreak) |
+      ref0(blockquote) |
       ref0(paragraph);
 
   /// A blank line is a bare newline character.
@@ -66,6 +67,10 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
   /// Thematic break: exactly `---`, `***`, or `___` followed by line ending.
   Parser thematicBreak() =>
       (string('---') | string('***') | string('___')) & ref0(lineEnding);
+
+  /// Blockquote: `> ` followed by inline content and line ending.
+  Parser blockquote() =>
+      string('> ') & ref0(inlineContent) & ref0(lineEnding);
 
   /// Paragraph: inline content followed by line ending.
   Parser paragraph() => ref0(inlineContent) & ref0(lineEnding);

@@ -86,6 +86,13 @@ void main() {
       expect(ranges, isEmpty);
     });
 
+    test('blockquote has > prefix delimiter', () {
+      // > Hello\n
+      final doc = parse('> Hello\n');
+      final ranges = CursorMapper.delimiterRanges(doc.blocks[0]);
+      expect(ranges, contains((0, 2))); // "> "
+    });
+
     test('fenced code block has fence line delimiters', () {
       // ```dart\ncode\n```\n
       // openLine = "```dart\n" = 8 chars
