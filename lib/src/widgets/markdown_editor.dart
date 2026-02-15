@@ -21,6 +21,9 @@ class MarkdownEditor extends StatefulWidget {
   /// Called when the markdown text changes.
   final ValueChanged<String>? onChanged;
 
+  /// Called when the user triggers a save action (Cmd+S).
+  final ValueChanged<String>? onSaved;
+
   /// Focus node. If not provided, the widget creates and manages its own.
   final FocusNode? focusNode;
 
@@ -41,6 +44,7 @@ class MarkdownEditor extends StatefulWidget {
     this.initialMarkdown,
     this.controller,
     this.onChanged,
+    this.onSaved,
     this.focusNode,
     this.theme,
     this.readOnly = false,
@@ -152,6 +156,10 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   void toggleInlineCode() => _controller.toggleInlineCode();
   void toggleStrikethrough() => _controller.toggleStrikethrough();
   void setHeadingLevel(int level) => _controller.setHeadingLevel(level);
+  void indent() => _controller.indent();
+  void outdent() => _controller.outdent();
+  void insertLink() => _controller.insertLink();
+  void toggleCodeBlock() => _controller.toggleCodeBlock();
 
   @override
   void initState() {
@@ -177,6 +185,7 @@ class MarkdownEditorState extends State<MarkdownEditor> {
       _focusNode = FocusNode();
       _ownsFocusNode = true;
     }
+    _focusNode.onKeyEvent = _handleTabKeyEvent;
 
     _controller.addListener(_onControllerChanged);
     _focusNode.addListener(_onFocusChanged);
@@ -224,6 +233,7 @@ class MarkdownEditorState extends State<MarkdownEditor> {
         _focusNode = FocusNode();
         _ownsFocusNode = true;
       }
+      _focusNode.onKeyEvent = _handleTabKeyEvent;
       _focusNode.addListener(_onFocusChanged);
     }
   }
@@ -380,6 +390,27 @@ class MarkdownEditorState extends State<MarkdownEditor> {
         SingleActivator(LogicalKeyboardKey.keyZ,
             shift: true, meta: _isMacOS, control: !_isMacOS):
             const _RedoIntent(),
+
+        // Indent / Outdent (Tab/Shift+Tab handled in _handleKeyEvent)
+        SingleActivator(LogicalKeyboardKey.bracketRight,
+            shift: true, meta: _isMacOS, control: !_isMacOS):
+            const _IndentIntent(),
+        SingleActivator(LogicalKeyboardKey.bracketLeft,
+            shift: true, meta: _isMacOS, control: !_isMacOS):
+            const _OutdentIntent(),
+
+        // Insert link
+        SingleActivator(LogicalKeyboardKey.keyK,
+            meta: _isMacOS, control: !_isMacOS): const _InsertLinkIntent(),
+
+        // Toggle code block
+        SingleActivator(LogicalKeyboardKey.keyC,
+            shift: true, meta: _isMacOS, control: !_isMacOS):
+            const _ToggleCodeBlockIntent(),
+
+        // Save
+        SingleActivator(LogicalKeyboardKey.keyS,
+            meta: _isMacOS, control: !_isMacOS): const _SaveIntent(),
       };
 
   Map<Type, Action<Intent>> get _actions => {
@@ -398,7 +429,37 @@ class MarkdownEditorState extends State<MarkdownEditor> {
             CallbackAction<_UndoIntent>(onInvoke: (_) => undo()),
         _RedoIntent:
             CallbackAction<_RedoIntent>(onInvoke: (_) => redo()),
+        _IndentIntent:
+            CallbackAction<_IndentIntent>(onInvoke: (_) => indent()),
+        _OutdentIntent:
+            CallbackAction<_OutdentIntent>(onInvoke: (_) => outdent()),
+        _InsertLinkIntent:
+            CallbackAction<_InsertLinkIntent>(onInvoke: (_) => insertLink()),
+        _ToggleCodeBlockIntent:
+            CallbackAction<_ToggleCodeBlockIntent>(
+                onInvoke: (_) => toggleCodeBlock()),
+        _SaveIntent: CallbackAction<_SaveIntent>(
+            onInvoke: (_) =>
+                widget.onSaved?.call(_controller.text)),
       };
+
+  /// Intercept Tab/Shift+Tab key events.
+  KeyEventResult _handleTabKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.tab) {
+      if (HardwareKeyboard.instance.isShiftPressed) {
+        outdent();
+      } else {
+        indent();
+      }
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -432,7 +493,12 @@ class MarkdownEditorState extends State<MarkdownEditor> {
                 autofocus: widget.autofocus,
                 maxLines: null,
                 keyboardType: TextInputType.multiline,
-                inputFormatters: [_SmartEditFormatter(_controller)],
+                inputFormatters: [
+                  // Tab chars are handled by _handleTabKeyEvent; block
+                  // any platform-injected \t from reaching the controller.
+                  FilteringTextInputFormatter.deny(RegExp(r'\t')),
+                  _SmartEditFormatter(_controller),
+                ],
               ),
             ),
           ),
@@ -539,7 +605,7 @@ class _GapFreeSelectionPainter extends CustomPainter {
 // Smart Edit Formatter
 // ---------------------------------------------------------------------------
 
-/// A [TextInputFormatter] that intercepts Enter and Backspace to apply
+/// A [TextInputFormatter] that intercepts Enter, Backspace, and Tab to apply
 /// smart list/blockquote/heading behaviour via the controller.
 class _SmartEditFormatter extends TextInputFormatter {
   final MarkdownEditingController _controller;
@@ -608,4 +674,24 @@ class _UndoIntent extends Intent {
 
 class _RedoIntent extends Intent {
   const _RedoIntent();
+}
+
+class _IndentIntent extends Intent {
+  const _IndentIntent();
+}
+
+class _OutdentIntent extends Intent {
+  const _OutdentIntent();
+}
+
+class _InsertLinkIntent extends Intent {
+  const _InsertLinkIntent();
+}
+
+class _ToggleCodeBlockIntent extends Intent {
+  const _ToggleCodeBlockIntent();
+}
+
+class _SaveIntent extends Intent {
+  const _SaveIntent();
 }

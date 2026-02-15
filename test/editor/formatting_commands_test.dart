@@ -252,4 +252,212 @@ void main() {
           const TextSelection.collapsed(offset: 2));
     });
   });
+
+  group('indent', () {
+    test('adds 2-space indent to unordered list item', () {
+      controller.text = '- item\n';
+      controller.selection = const TextSelection.collapsed(offset: 4);
+
+      controller.indent();
+
+      expect(controller.text, '  - item\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 6));
+    });
+
+    test('adds 2-space indent to ordered list item', () {
+      controller.text = '1. item\n';
+      controller.selection = const TextSelection.collapsed(offset: 5);
+
+      controller.indent();
+
+      expect(controller.text, '  1. item\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 7));
+    });
+
+    test('adds additional indent to already indented list item', () {
+      controller.text = '  - item\n';
+      controller.selection = const TextSelection.collapsed(offset: 6);
+
+      controller.indent();
+
+      expect(controller.text, '    - item\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 8));
+    });
+
+    test('inserts 2 spaces for non-list context', () {
+      controller.text = 'Hello\n';
+      controller.selection = const TextSelection.collapsed(offset: 3);
+
+      controller.indent();
+
+      expect(controller.text, 'Hel  lo\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 5));
+    });
+
+    test('indents task list item', () {
+      controller.text = '- [ ] task\n';
+      controller.selection = const TextSelection.collapsed(offset: 8);
+
+      controller.indent();
+
+      expect(controller.text, '  - [ ] task\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 10));
+    });
+
+    test('works on correct line in multi-line text', () {
+      controller.text = '- first\n- second\n- third\n';
+      // cursor in "second" at offset 12
+      controller.selection = const TextSelection.collapsed(offset: 12);
+
+      controller.indent();
+
+      expect(controller.text, '- first\n  - second\n- third\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 14));
+    });
+  });
+
+  group('outdent', () {
+    test('removes 2-space indent from list item', () {
+      controller.text = '  - item\n';
+      controller.selection = const TextSelection.collapsed(offset: 6);
+
+      controller.outdent();
+
+      expect(controller.text, '- item\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 4));
+    });
+
+    test('removes 2-space indent from ordered list item', () {
+      controller.text = '  1. item\n';
+      controller.selection = const TextSelection.collapsed(offset: 7);
+
+      controller.outdent();
+
+      expect(controller.text, '1. item\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 5));
+    });
+
+    test('does nothing if list item has no indent', () {
+      controller.text = '- item\n';
+      controller.selection = const TextSelection.collapsed(offset: 4);
+
+      controller.outdent();
+
+      expect(controller.text, '- item\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 4));
+    });
+
+    test('removes only 2 spaces from deeper indent', () {
+      controller.text = '    - item\n';
+      controller.selection = const TextSelection.collapsed(offset: 8);
+
+      controller.outdent();
+
+      expect(controller.text, '  - item\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 6));
+    });
+
+    test('does nothing for non-list context', () {
+      controller.text = 'Hello\n';
+      controller.selection = const TextSelection.collapsed(offset: 3);
+
+      controller.outdent();
+
+      expect(controller.text, 'Hello\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 3));
+    });
+
+    test('outdents task list item', () {
+      controller.text = '  - [ ] task\n';
+      controller.selection = const TextSelection.collapsed(offset: 10);
+
+      controller.outdent();
+
+      expect(controller.text, '- [ ] task\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 8));
+    });
+  });
+
+  group('insertLink', () {
+    test('inserts empty link template at collapsed cursor', () {
+      controller.text = 'Hello\n';
+      controller.selection = const TextSelection.collapsed(offset: 5);
+
+      controller.insertLink();
+
+      expect(controller.text, 'Hello[](url)\n');
+      // cursor should be inside the []
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 6));
+    });
+
+    test('wraps selection as link text', () {
+      controller.text = 'click here please\n';
+      controller.selection =
+          const TextSelection(baseOffset: 6, extentOffset: 10);
+
+      controller.insertLink();
+
+      expect(controller.text, 'click [here](url) please\n');
+      // cursor should be inside the () selecting "url"
+      expect(controller.selection,
+          const TextSelection(baseOffset: 13, extentOffset: 16));
+    });
+  });
+
+  group('toggleCodeBlock', () {
+    test('wraps current line in code fences at collapsed cursor', () {
+      controller.text = 'some code\n';
+      controller.selection = const TextSelection.collapsed(offset: 5);
+
+      controller.toggleCodeBlock();
+
+      expect(controller.text, '```\nsome code\n```\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 9));
+    });
+
+    test('unwraps code fences if already inside', () {
+      controller.text = '```\nsome code\n```\n';
+      controller.selection = const TextSelection.collapsed(offset: 8);
+
+      controller.toggleCodeBlock();
+
+      expect(controller.text, 'some code\n');
+      // offset 8 was ' ' between "some" and "code"; removing "```\n" (4 chars)
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 4));
+    });
+
+    test('wraps multi-line selection in code fences', () {
+      controller.text = 'line one\nline two\n';
+      controller.selection =
+          const TextSelection(baseOffset: 0, extentOffset: 17);
+
+      controller.toggleCodeBlock();
+
+      expect(controller.text, '```\nline one\nline two\n```\n');
+    });
+
+    test('wraps line in code fences with blank lines preserved', () {
+      controller.text = 'before\nsome code\nafter\n';
+      controller.selection = const TextSelection.collapsed(offset: 12);
+
+      controller.toggleCodeBlock();
+
+      expect(controller.text, 'before\n```\nsome code\n```\nafter\n');
+    });
+  });
 }

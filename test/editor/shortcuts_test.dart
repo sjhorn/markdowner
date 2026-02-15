@@ -240,4 +240,172 @@ void main() {
       expect(controller.text, '## Hello world\n');
     });
   });
+
+  group('indent/outdent shortcuts', () {
+    testWidgets('Tab indents list item', (tester) async {
+      controller.text = '- item\n';
+      controller.selection = const TextSelection.collapsed(offset: 4);
+
+      await tester.pumpWidget(buildApp());
+      await tester.pump();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+
+      expect(controller.text, '  - item\n');
+    });
+
+    testWidgets('Shift+Tab outdents list item', (tester) async {
+      controller.text = '  - item\n';
+      controller.selection = const TextSelection.collapsed(offset: 6);
+
+      await tester.pumpWidget(buildApp());
+      await tester.pump();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+
+      expect(controller.text, '- item\n');
+    });
+
+    testWidgets('Cmd/Ctrl+Shift+] indents list item', (tester) async {
+      controller.text = '- item\n';
+      controller.selection = const TextSelection.collapsed(offset: 4);
+
+      await tester.pumpWidget(buildApp());
+      await tester.pump();
+
+      await sendShortcut(tester, LogicalKeyboardKey.bracketRight, shift: true);
+
+      expect(controller.text, '  - item\n');
+    });
+
+    testWidgets('Cmd/Ctrl+Shift+[ outdents list item', (tester) async {
+      controller.text = '  - item\n';
+      controller.selection = const TextSelection.collapsed(offset: 6);
+
+      await tester.pumpWidget(buildApp());
+      await tester.pump();
+
+      await sendShortcut(tester, LogicalKeyboardKey.bracketLeft, shift: true);
+
+      expect(controller.text, '- item\n');
+    });
+
+    testWidgets('Tab inserts 2 spaces in non-list context', (tester) async {
+      controller.text = 'Hello world\n';
+      controller.selection = const TextSelection.collapsed(offset: 5);
+
+      await tester.pumpWidget(buildApp());
+      await tester.pump();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+
+      // 2 spaces inserted at offset 5 + original space = 3 spaces
+      expect(controller.text, 'Hello   world\n');
+    });
+  });
+
+  group('insert link shortcut', () {
+    testWidgets('Cmd/Ctrl+K inserts link at collapsed cursor', (tester) async {
+      await tester.pumpWidget(buildApp());
+      await tester.pump();
+
+      controller.selection = const TextSelection.collapsed(offset: 5);
+      await tester.pump();
+
+      await sendShortcut(tester, LogicalKeyboardKey.keyK);
+
+      expect(controller.text, 'Hello[](url) world\n');
+    });
+
+    testWidgets('Cmd/Ctrl+K wraps selection as link', (tester) async {
+      await tester.pumpWidget(buildApp());
+      await tester.pump();
+
+      controller.selection =
+          const TextSelection(baseOffset: 0, extentOffset: 5);
+      await tester.pump();
+
+      await sendShortcut(tester, LogicalKeyboardKey.keyK);
+
+      expect(controller.text, '[Hello](url) world\n');
+    });
+  });
+
+  group('toggle code block shortcut', () {
+    testWidgets('Cmd/Ctrl+Shift+C wraps line in code fences', (tester) async {
+      controller.text = 'some code\n';
+      controller.selection = const TextSelection.collapsed(offset: 5);
+
+      await tester.pumpWidget(buildApp());
+      await tester.pump();
+
+      await sendShortcut(tester, LogicalKeyboardKey.keyC, shift: true);
+
+      expect(controller.text, '```\nsome code\n```\n');
+    });
+  });
+
+  group('save shortcut', () {
+    testWidgets('Cmd/Ctrl+S triggers onSaved callback', (tester) async {
+      String? savedText;
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: MarkdownEditor(
+            key: editorKey,
+            controller: controller,
+            autofocus: true,
+            onSaved: (text) => savedText = text,
+          ),
+        ),
+      ));
+      await tester.pump();
+
+      await sendShortcut(tester, LogicalKeyboardKey.keyS);
+
+      expect(savedText, 'Hello world\n');
+    });
+
+    testWidgets('Cmd/Ctrl+S no-op when onSaved is null', (tester) async {
+      await tester.pumpWidget(buildApp());
+      await tester.pump();
+
+      // Should not throw.
+      await sendShortcut(tester, LogicalKeyboardKey.keyS);
+
+      expect(controller.text, 'Hello world\n');
+    });
+  });
+
+  group('MarkdownEditorState exposes new methods', () {
+    testWidgets('insertLink is accessible via state', (tester) async {
+      await tester.pumpWidget(buildApp());
+      await tester.pump();
+
+      controller.selection = const TextSelection.collapsed(offset: 5);
+
+      editorKey.currentState!.insertLink();
+
+      expect(controller.text, 'Hello[](url) world\n');
+    });
+
+    testWidgets('toggleCodeBlock is accessible via state', (tester) async {
+      controller.text = 'some code\n';
+      controller.selection = const TextSelection.collapsed(offset: 5);
+
+      await tester.pumpWidget(buildApp());
+      await tester.pump();
+
+      editorKey.currentState!.toggleCodeBlock();
+
+      expect(controller.text, '```\nsome code\n```\n');
+    });
+  });
 }

@@ -136,6 +136,254 @@ class MarkdownEditingController extends TextEditingController {
   }
 
   // ---------------------------------------------------------------------------
+  // Indent / Outdent
+  // ---------------------------------------------------------------------------
+
+  /// Indent the current line. For list items, adds 2-space prefix.
+  /// For non-list context, inserts 2 spaces at cursor.
+  void indent() {
+    final sel = selection;
+    final cursorOffset = sel.baseOffset;
+
+    // Find the start and end of the current line.
+    int lineStart = cursorOffset;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') {
+      lineStart--;
+    }
+    int lineEnd = cursorOffset;
+    while (lineEnd < text.length && text[lineEnd] != '\n') {
+      lineEnd++;
+    }
+
+    final lineText = text.substring(lineStart, lineEnd);
+
+    // Check if line is a list item (unordered or ordered).
+    final ulMatch = _unorderedListRe.firstMatch(lineText);
+    final olMatch = _orderedListRe.firstMatch(lineText);
+
+    if (ulMatch != null || olMatch != null) {
+      // Insert 2 spaces at line start.
+      final newText =
+          text.substring(0, lineStart) + '  ' + text.substring(lineStart);
+      value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: cursorOffset + 2),
+      );
+    } else {
+      // Non-list: insert 2 spaces at cursor.
+      final newText = text.substring(0, cursorOffset) +
+          '  ' +
+          text.substring(cursorOffset);
+      value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: cursorOffset + 2),
+      );
+    }
+  }
+
+  /// Outdent the current line. For list items, removes 2-space prefix.
+  /// No-op for non-list context or list items with no indent.
+  void outdent() {
+    final sel = selection;
+    final cursorOffset = sel.baseOffset;
+
+    // Find the start and end of the current line.
+    int lineStart = cursorOffset;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') {
+      lineStart--;
+    }
+    int lineEnd = cursorOffset;
+    while (lineEnd < text.length && text[lineEnd] != '\n') {
+      lineEnd++;
+    }
+
+    final lineText = text.substring(lineStart, lineEnd);
+
+    // Check if line is a list item.
+    final ulMatch = _unorderedListRe.firstMatch(lineText);
+    final olMatch = _orderedListRe.firstMatch(lineText);
+
+    if (ulMatch != null || olMatch != null) {
+      final indent =
+          ulMatch != null ? ulMatch.group(1)! : olMatch!.group(1)!;
+      if (indent.length < 2) return; // No indent to remove.
+
+      // Remove 2 spaces from the beginning of the line.
+      final newText =
+          text.substring(0, lineStart) + text.substring(lineStart + 2);
+      value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: cursorOffset - 2),
+      );
+    }
+    // Non-list: no-op.
+  }
+
+  // ---------------------------------------------------------------------------
+  // Insert Link
+  // ---------------------------------------------------------------------------
+
+  /// Insert a markdown link at the cursor position.
+  ///
+  /// - Collapsed cursor: inserts `[](url)` with cursor inside `[]`.
+  /// - With selection: wraps as `[selection](url)` with cursor selecting
+  ///   `url` inside `()`.
+  void insertLink() {
+    final sel = selection;
+
+    if (sel.isCollapsed) {
+      final offset = sel.baseOffset;
+      final newText =
+          text.substring(0, offset) + '[](url)' + text.substring(offset);
+      value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: offset + 1),
+      );
+    } else {
+      final start = sel.start;
+      final end = sel.end;
+      final selectedText = text.substring(start, end);
+      final newText = text.substring(0, start) +
+          '[$selectedText](url)' +
+          text.substring(end);
+      final urlStart = start + selectedText.length + 3; // [text](
+      value = TextEditingValue(
+        text: newText,
+        selection: TextSelection(
+          baseOffset: urlStart,
+          extentOffset: urlStart + 3, // select "url"
+        ),
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Toggle Code Block
+  // ---------------------------------------------------------------------------
+
+  /// Toggle a fenced code block around the current line or selection.
+  ///
+  /// - If cursor is inside a code block (detected by ``` fences), removes them.
+  /// - Otherwise wraps the current line(s) in ``` fences.
+  void toggleCodeBlock() {
+    final sel = selection;
+    final cursorOffset = sel.baseOffset;
+
+    // Find the start of the current line.
+    int lineStart = cursorOffset;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') {
+      lineStart--;
+    }
+
+    // Check if we're inside a code block by looking for ``` fence above and below.
+    int? openFenceLineStart;
+    int? closeFenceLineEnd;
+
+    // Search backwards for opening ```.
+    int searchPos = lineStart;
+    while (searchPos > 0) {
+      // Move to previous line start.
+      int prevLineStart = searchPos - 1;
+      while (prevLineStart > 0 && text[prevLineStart - 1] != '\n') {
+        prevLineStart--;
+      }
+      final prevLine = text.substring(prevLineStart, searchPos - 1);
+      if (prevLine.startsWith('```')) {
+        openFenceLineStart = prevLineStart;
+        break;
+      }
+      searchPos = prevLineStart;
+    }
+
+    int? closeFenceLineStart;
+
+    if (openFenceLineStart != null) {
+      // Search forwards for closing ```.
+      int endLineStart = lineStart;
+      // Move past current line.
+      int pos = endLineStart;
+      while (pos < text.length && text[pos] != '\n') {
+        pos++;
+      }
+      if (pos < text.length) pos++; // skip \n
+
+      while (pos < text.length) {
+        int nextLineEnd = pos;
+        while (nextLineEnd < text.length && text[nextLineEnd] != '\n') {
+          nextLineEnd++;
+        }
+        final nextLine = text.substring(pos, nextLineEnd);
+        if (nextLine.startsWith('```')) {
+          closeFenceLineStart = pos;
+          closeFenceLineEnd =
+              nextLineEnd < text.length ? nextLineEnd + 1 : nextLineEnd;
+          break;
+        }
+        pos = nextLineEnd < text.length ? nextLineEnd + 1 : nextLineEnd;
+      }
+    }
+
+    if (openFenceLineStart != null && closeFenceLineEnd != null) {
+      // Unwrap: remove the fences.
+      // Content is between opening fence line end and closing fence line start.
+      int openFenceEnd = openFenceLineStart;
+      while (openFenceEnd < text.length && text[openFenceEnd] != '\n') {
+        openFenceEnd++;
+      }
+      openFenceEnd++; // skip \n after opening fence
+
+      final content = text.substring(openFenceEnd, closeFenceLineStart!);
+      final newText = text.substring(0, openFenceLineStart) +
+          content +
+          text.substring(closeFenceLineEnd!);
+
+      // Adjust cursor: offset by removing the opening fence line.
+      final fenceLineLen = openFenceEnd - openFenceLineStart;
+      final newCursor = cursorOffset - fenceLineLen;
+
+      value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(
+          offset: newCursor.clamp(0, newText.length),
+        ),
+      );
+    } else {
+      // Wrap: find the line range to wrap.
+      int wrapStart = lineStart;
+      int wrapEnd;
+
+      if (!sel.isCollapsed) {
+        // Multi-line selection: find end of last selected line.
+        wrapEnd = sel.end;
+        while (wrapEnd < text.length && text[wrapEnd] != '\n') {
+          wrapEnd++;
+        }
+        if (wrapEnd < text.length) wrapEnd++; // include trailing \n
+      } else {
+        // Single line: find end of current line.
+        wrapEnd = lineStart;
+        while (wrapEnd < text.length && text[wrapEnd] != '\n') {
+          wrapEnd++;
+        }
+        if (wrapEnd < text.length) wrapEnd++; // include trailing \n
+      }
+
+      final content = text.substring(wrapStart, wrapEnd);
+      final newText = text.substring(0, wrapStart) +
+          '```\n' +
+          content +
+          '```\n' +
+          text.substring(wrapEnd);
+
+      // Cursor moves by 4 (```\n).
+      value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: cursorOffset + 4),
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Smart Enter
   // ---------------------------------------------------------------------------
 
