@@ -110,7 +110,8 @@ That was a thematic break above. Happy editing!
           icon: const Icon(Icons.undo),
           tooltip: 'Undo (Cmd+Z)',
           onPressed: () {
-            _editorKey.currentState?.undo();
+            _editorKey.currentState
+                ?.performToolbarAction((s) => s.undo());
             setState(() {});
           },
         ),
@@ -118,7 +119,8 @@ That was a thematic break above. Happy editing!
           tooltip: 'Undo history',
           offset: const Offset(0, kToolbarHeight),
           onSelected: (index) {
-            _editorKey.currentState?.undoSteps(index + 1);
+            _editorKey.currentState
+                ?.performToolbarAction((s) => s.undoSteps(index + 1));
             setState(() {});
           },
           itemBuilder: (context) {
@@ -154,7 +156,8 @@ That was a thematic break above. Happy editing!
           icon: const Icon(Icons.redo),
           tooltip: 'Redo (Cmd+Shift+Z)',
           onPressed: () {
-            _editorKey.currentState?.redo();
+            _editorKey.currentState
+                ?.performToolbarAction((s) => s.redo());
             setState(() {});
           },
         ),
@@ -162,7 +165,8 @@ That was a thematic break above. Happy editing!
           tooltip: 'Redo history',
           offset: const Offset(0, kToolbarHeight),
           onSelected: (index) {
-            _editorKey.currentState?.redoSteps(index + 1);
+            _editorKey.currentState
+                ?.performToolbarAction((s) => s.redoSteps(index + 1));
             setState(() {});
           },
           itemBuilder: (context) {
@@ -205,23 +209,26 @@ That was a thematic break above. Happy editing!
           IconButton(
             icon: const Icon(Icons.format_bold),
             tooltip: 'Bold (Cmd+B)',
-            onPressed: () => _editorKey.currentState?.toggleBold(),
+            onPressed: () => _editorKey.currentState
+                ?.performToolbarAction((s) => s.toggleBold()),
           ),
           IconButton(
             icon: const Icon(Icons.format_italic),
             tooltip: 'Italic (Cmd+I)',
-            onPressed: () => _editorKey.currentState?.toggleItalic(),
+            onPressed: () => _editorKey.currentState
+                ?.performToolbarAction((s) => s.toggleItalic()),
           ),
           IconButton(
             icon: const Icon(Icons.code),
             tooltip: 'Inline code (Cmd+`)',
-            onPressed: () => _editorKey.currentState?.toggleInlineCode(),
+            onPressed: () => _editorKey.currentState
+                ?.performToolbarAction((s) => s.toggleInlineCode()),
           ),
           IconButton(
             icon: const Icon(Icons.strikethrough_s),
             tooltip: 'Strikethrough (Cmd+Shift+K)',
-            onPressed: () =>
-                _editorKey.currentState?.toggleStrikethrough(),
+            onPressed: () => _editorKey.currentState
+                ?.performToolbarAction((s) => s.toggleStrikethrough()),
           ),
           const VerticalDivider(width: 1),
           _buildUndoSplitButton(),

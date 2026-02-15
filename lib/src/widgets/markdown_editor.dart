@@ -63,6 +63,11 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   bool _ownsFocusNode = false;
   bool _isUndoRedoInProgress = false;
 
+  // Focus save/restore for toolbar interactions.
+  TextSelection? _savedSelection;
+  bool _initialFocusApplied = false;
+  VoidCallback? _restorationGuard;
+
   MarkdownEditingController get controller => _controller;
   UndoRedoManager get undoRedoManager => _undoRedoManager;
 
@@ -174,6 +179,7 @@ class MarkdownEditorState extends State<MarkdownEditor> {
     }
 
     _controller.addListener(_onControllerChanged);
+    _focusNode.addListener(_onFocusChanged);
     _undoRedoManager.setInitialState(
       _controller.text,
       _controller.selection,
@@ -206,6 +212,7 @@ class MarkdownEditorState extends State<MarkdownEditor> {
     }
 
     if (widget.focusNode != oldWidget.focusNode) {
+      _focusNode.removeListener(_onFocusChanged);
       if (_ownsFocusNode) {
         _focusNode.dispose();
         _ownsFocusNode = false;
@@ -217,6 +224,7 @@ class MarkdownEditorState extends State<MarkdownEditor> {
         _focusNode = FocusNode();
         _ownsFocusNode = true;
       }
+      _focusNode.addListener(_onFocusChanged);
     }
   }
 
@@ -230,8 +238,96 @@ class MarkdownEditorState extends State<MarkdownEditor> {
     widget.onChanged?.call(_controller.text);
   }
 
+  // ---------------------------------------------------------------------------
+  // Focus save/restore for toolbar interactions
+  // ---------------------------------------------------------------------------
+
+  void _onFocusChanged() {
+    if (!_focusNode.hasFocus) {
+      // Focus lost — save current selection.
+      _savedSelection = _controller.selection;
+    } else if (_initialFocusApplied && _savedSelection != null) {
+      // Focus regained (not the initial gain) — restore saved selection.
+      final selection = _savedSelection!;
+      _savedSelection = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _controller.selection = selection;
+        _armRestorationGuard(selection);
+      });
+    } else {
+      _initialFocusApplied = true;
+    }
+  }
+
+  void _armRestorationGuard(TextSelection savedSelection) {
+    _removeRestorationGuard();
+    void guard() {
+      final sel = _controller.selection;
+      final isSelectAll = sel.baseOffset == 0 &&
+          sel.extentOffset == _controller.text.length &&
+          sel.extentOffset > 0;
+      if (isSelectAll) {
+        _controller.selection = savedSelection;
+      }
+      _removeRestorationGuard();
+    }
+
+    _restorationGuard = guard;
+    _controller.addListener(guard);
+  }
+
+  void _removeRestorationGuard() {
+    if (_restorationGuard != null) {
+      _controller.removeListener(_restorationGuard!);
+      _restorationGuard = null;
+    }
+  }
+
+  /// Restore the saved selection to the controller.
+  ///
+  /// When the browser steals focus (e.g. toolbar click), the controller's
+  /// selection may get disturbed. Call this before performing an action that
+  /// depends on the cursor position.
+  void restoreSelection() {
+    if (_savedSelection != null) {
+      _controller.selection = _savedSelection!;
+    }
+  }
+
+  /// Request focus back to the editor after a toolbar action.
+  ///
+  /// Call this from toolbar button handlers after performing the action
+  /// (e.g. toggleBold). It schedules a focus request via post-frame callback,
+  /// which triggers the save/restore cycle.
+  void requestEditorFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _focusNode.requestFocus();
+    });
+  }
+
+  /// Execute a toolbar action with proper focus management.
+  ///
+  /// Restores the saved selection before the action runs (so the action
+  /// operates at the correct cursor position), then requests focus back.
+  /// Usage:
+  /// ```dart
+  /// _editorKey.currentState?.performToolbarAction((s) => s.toggleBold());
+  /// ```
+  void performToolbarAction(void Function(MarkdownEditorState state) action) {
+    restoreSelection();
+    action(this);
+    // Update saved selection to the post-action cursor position so the
+    // focus restoration cycle doesn't overwrite it with the pre-action one.
+    _savedSelection = _controller.selection;
+    requestEditorFocus();
+  }
+
   @override
   void dispose() {
+    _removeRestorationGuard();
+    _focusNode.removeListener(_onFocusChanged);
     _controller.removeListener(_onControllerChanged);
     if (_ownsController) _controller.dispose();
     if (_ownsFocusNode) _focusNode.dispose();
@@ -316,21 +412,28 @@ class MarkdownEditorState extends State<MarkdownEditor> {
           actions: _actions,
           child: _gestureDetectorBuilder.buildGestureDetector(
             behavior: HitTestBehavior.translucent,
-            child: EditableText(
-              key: _editableKey,
-              rendererIgnoresPointer: true,
-              controller: _controller,
-              focusNode: _focusNode,
-              style: theme.baseStyle,
-              cursorColor: theme.cursorColor,
-              selectionColor: theme.selectionColor,
-              backgroundCursorColor:
-                  theme.cursorColor.withValues(alpha: 0.1),
-              readOnly: widget.readOnly,
-              autofocus: widget.autofocus,
-              maxLines: null,
-              keyboardType: TextInputType.multiline,
-              inputFormatters: [_SmartEditFormatter(_controller)],
+            child: CustomPaint(
+              painter: _GapFreeSelectionPainter(
+                controller: _controller,
+                editableKey: _editableKey,
+                selectionColor: theme.selectionColor,
+              ),
+              child: EditableText(
+                key: _editableKey,
+                rendererIgnoresPointer: true,
+                controller: _controller,
+                focusNode: _focusNode,
+                style: theme.baseStyle,
+                cursorColor: theme.cursorColor,
+                selectionColor: const Color(0x00000000),
+                backgroundCursorColor:
+                    theme.cursorColor.withValues(alpha: 0.1),
+                readOnly: widget.readOnly,
+                autofocus: widget.autofocus,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                inputFormatters: [_SmartEditFormatter(_controller)],
+              ),
             ),
           ),
         ),
@@ -351,6 +454,85 @@ class _TextSelectionDelegate
 
   @override
   bool get selectionEnabled => true;
+}
+
+// ---------------------------------------------------------------------------
+// Gap-free selection painter
+// ---------------------------------------------------------------------------
+
+/// Paints selection highlights with no vertical gaps between lines.
+///
+/// The built-in [EditableText] selection can leave visible gaps between lines
+/// when [TextStyle.height] > 1.0. This painter reads the selection boxes from
+/// the [RenderEditable], groups them by line, and extends each line's top/bottom
+/// to meet adjacent lines at the midpoint of any gap.
+class _GapFreeSelectionPainter extends CustomPainter {
+  final TextEditingController controller;
+  final GlobalKey<EditableTextState> editableKey;
+  final Color selectionColor;
+
+  _GapFreeSelectionPainter({
+    required this.controller,
+    required this.editableKey,
+    required this.selectionColor,
+  }) : super(repaint: controller);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final sel = controller.selection;
+    if (!sel.isValid || sel.isCollapsed) return;
+
+    final editable = editableKey.currentState?.renderEditable;
+    if (editable == null) return;
+
+    final boxes = editable.getBoxesForSelection(sel);
+    if (boxes.isEmpty) return;
+
+    // Group boxes into lines. Boxes on the same line share a similar vertical
+    // centre. Merge each line's boxes into a single bounding rect.
+    final lineRects = <Rect>[];
+    for (final box in boxes) {
+      final rect = Rect.fromLTRB(box.left, box.top, box.right, box.bottom);
+      if (lineRects.isEmpty ||
+          ((rect.top + rect.bottom) / 2 -
+                      (lineRects.last.top + lineRects.last.bottom) / 2)
+                  .abs() >
+              1.0) {
+        lineRects.add(rect);
+      } else {
+        lineRects[lineRects.length - 1] =
+            lineRects.last.expandToInclude(rect);
+      }
+    }
+
+    // Close vertical gaps between adjacent lines by meeting at the midpoint.
+    for (var i = 0; i < lineRects.length - 1; i++) {
+      final gap = lineRects[i + 1].top - lineRects[i].bottom;
+      if (gap > 0) {
+        final mid = lineRects[i].bottom + gap / 2;
+        lineRects[i] = Rect.fromLTRB(
+          lineRects[i].left,
+          lineRects[i].top,
+          lineRects[i].right,
+          mid,
+        );
+        lineRects[i + 1] = Rect.fromLTRB(
+          lineRects[i + 1].left,
+          mid,
+          lineRects[i + 1].right,
+          lineRects[i + 1].bottom,
+        );
+      }
+    }
+
+    final paint = Paint()..color = selectionColor;
+    for (final rect in lineRects) {
+      canvas.drawRect(rect, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GapFreeSelectionPainter old) => true;
 }
 
 // ---------------------------------------------------------------------------
