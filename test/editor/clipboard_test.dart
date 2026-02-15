@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:markdowner/src/editor/markdown_editing_controller.dart';
 import 'package:markdowner/src/widgets/markdown_editor.dart';
@@ -74,9 +73,7 @@ void main() {
       // Simulate paste by inserting text at cursor
       final offset = controller.selection.baseOffset;
       controller.value = TextEditingValue(
-        text: controller.text.substring(0, offset) +
-            ' **pasted**' +
-            controller.text.substring(offset),
+        text: '${controller.text.substring(0, offset)} **pasted**${controller.text.substring(offset)}',
         selection:
             TextSelection.collapsed(offset: offset + ' **pasted**'.length),
       );

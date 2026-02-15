@@ -164,16 +164,14 @@ class MarkdownEditingController extends TextEditingController {
     if (ulMatch != null || olMatch != null) {
       // Insert 2 spaces at line start.
       final newText =
-          text.substring(0, lineStart) + '  ' + text.substring(lineStart);
+          '${text.substring(0, lineStart)}  ${text.substring(lineStart)}';
       value = TextEditingValue(
         text: newText,
         selection: TextSelection.collapsed(offset: cursorOffset + 2),
       );
     } else {
       // Non-list: insert 2 spaces at cursor.
-      final newText = text.substring(0, cursorOffset) +
-          '  ' +
-          text.substring(cursorOffset);
+      final newText = '${text.substring(0, cursorOffset)}  ${text.substring(cursorOffset)}';
       value = TextEditingValue(
         text: newText,
         selection: TextSelection.collapsed(offset: cursorOffset + 2),
@@ -234,7 +232,7 @@ class MarkdownEditingController extends TextEditingController {
     if (sel.isCollapsed) {
       final offset = sel.baseOffset;
       final newText =
-          text.substring(0, offset) + '[](url)' + text.substring(offset);
+          '${text.substring(0, offset)}[](url)${text.substring(offset)}';
       value = TextEditingValue(
         text: newText,
         selection: TextSelection.collapsed(offset: offset + 1),
@@ -243,9 +241,7 @@ class MarkdownEditingController extends TextEditingController {
       final start = sel.start;
       final end = sel.end;
       final selectedText = text.substring(start, end);
-      final newText = text.substring(0, start) +
-          '[$selectedText](url)' +
-          text.substring(end);
+      final newText = '${text.substring(0, start)}[$selectedText](url)${text.substring(end)}';
       final urlStart = start + selectedText.length + 3; // [text](
       value = TextEditingValue(
         text: newText,
@@ -335,7 +331,7 @@ class MarkdownEditingController extends TextEditingController {
       final content = text.substring(openFenceEnd, closeFenceLineStart!);
       final newText = text.substring(0, openFenceLineStart) +
           content +
-          text.substring(closeFenceLineEnd!);
+          text.substring(closeFenceLineEnd);
 
       // Adjust cursor: offset by removing the opening fence line.
       final fenceLineLen = openFenceEnd - openFenceLineStart;
@@ -369,11 +365,7 @@ class MarkdownEditingController extends TextEditingController {
       }
 
       final content = text.substring(wrapStart, wrapEnd);
-      final newText = text.substring(0, wrapStart) +
-          '```\n' +
-          content +
-          '```\n' +
-          text.substring(wrapEnd);
+      final newText = '${text.substring(0, wrapStart)}```\n$content```\n${text.substring(wrapEnd)}';
 
       // Cursor moves by 4 (```\n).
       value = TextEditingValue(
@@ -412,9 +404,7 @@ class MarkdownEditingController extends TextEditingController {
     // Backtick: auto-close to `` with cursor between.
     if (char == '`') {
       final text = newValue.text;
-      final newText = text.substring(0, insertPos + 1) +
-          '`' +
-          text.substring(insertPos + 1);
+      final newText = '${text.substring(0, insertPos + 1)}`${text.substring(insertPos + 1)}';
       return TextEditingValue(
         text: newText,
         selection: TextSelection.collapsed(offset: insertPos + 1),
@@ -427,18 +417,14 @@ class MarkdownEditingController extends TextEditingController {
       // Check if preceded by ! for image syntax.
       if (insertPos > 0 && text[insertPos - 1] == '!') {
         // Image: ![](url)
-        final newText = text.substring(0, insertPos + 1) +
-            '](url)' +
-            text.substring(insertPos + 1);
+        final newText = '${text.substring(0, insertPos + 1)}](url)${text.substring(insertPos + 1)}';
         return TextEditingValue(
           text: newText,
           selection: TextSelection.collapsed(offset: insertPos + 1),
         );
       }
       // Link: [](url)
-      final newText = text.substring(0, insertPos + 1) +
-          '](url)' +
-          text.substring(insertPos + 1);
+      final newText = '${text.substring(0, insertPos + 1)}](url)${text.substring(insertPos + 1)}';
       return TextEditingValue(
         text: newText,
         selection: TextSelection.collapsed(offset: insertPos + 1),
@@ -449,9 +435,7 @@ class MarkdownEditingController extends TextEditingController {
     if (char == '*' && insertPos > 0 && newValue.text[insertPos - 1] == '*') {
       // Just typed **, auto-close to ****
       final text = newValue.text;
-      final newText = text.substring(0, insertPos + 1) +
-          '**' +
-          text.substring(insertPos + 1);
+      final newText = '${text.substring(0, insertPos + 1)}**${text.substring(insertPos + 1)}';
       return TextEditingValue(
         text: newText,
         selection: TextSelection.collapsed(offset: insertPos + 1),
@@ -461,9 +445,7 @@ class MarkdownEditingController extends TextEditingController {
     if (char == '~' && insertPos > 0 && newValue.text[insertPos - 1] == '~') {
       // Just typed ~~, auto-close to ~~~~
       final text = newValue.text;
-      final newText = text.substring(0, insertPos + 1) +
-          '~~' +
-          text.substring(insertPos + 1);
+      final newText = '${text.substring(0, insertPos + 1)}~~${text.substring(insertPos + 1)}';
       return TextEditingValue(
         text: newText,
         selection: TextSelection.collapsed(offset: insertPos + 1),
