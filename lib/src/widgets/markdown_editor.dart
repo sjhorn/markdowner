@@ -620,14 +620,22 @@ class _SmartEditFormatter extends TextInputFormatter {
     final oldLen = oldValue.text.length;
     final newLen = newValue.text.length;
 
-    // Detect Enter: exactly one character added and it's a newline.
+    // Detect single character insertion.
     if (newLen == oldLen + 1) {
       final insertPos = newValue.selection.baseOffset - 1;
-      if (insertPos >= 0 &&
-          insertPos < newLen &&
-          newValue.text[insertPos] == '\n') {
-        final result = _controller.applySmartEnter(oldValue, newValue);
-        if (result != null) return result;
+      if (insertPos >= 0 && insertPos < newLen) {
+        // Detect Enter.
+        if (newValue.text[insertPos] == '\n') {
+          final result = _controller.applySmartEnter(oldValue, newValue);
+          if (result != null) return result;
+        }
+
+        // Smart pair completion (backtick, bracket, **, ~~).
+        if (!newValue.composing.isValid || newValue.composing.isCollapsed) {
+          final result =
+              _controller.applySmartPairCompletion(oldValue, newValue);
+          if (result != null) return result;
+        }
       }
     }
 

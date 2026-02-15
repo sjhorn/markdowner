@@ -384,6 +384,133 @@ class MarkdownEditingController extends TextEditingController {
   }
 
   // ---------------------------------------------------------------------------
+  // Smart Pair Completion
+  // ---------------------------------------------------------------------------
+
+  /// Apply smart pair completion to a text input change.
+  ///
+  /// Returns a transformed [TextEditingValue] if a pair was auto-completed,
+  /// or `null` to indicate pass-through.
+  TextEditingValue? applySmartPairCompletion(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Only handle single character insertions.
+    if (newValue.text.length != oldValue.text.length + 1) return null;
+    if (!newValue.selection.isCollapsed) return null;
+
+    final insertPos = newValue.selection.baseOffset - 1;
+    if (insertPos < 0) return null;
+
+    final char = newValue.text[insertPos];
+
+    // Don't auto-close inside code blocks or inline code.
+    if (_isInsideCodeContext(oldValue.text, oldValue.selection.baseOffset)) {
+      return null;
+    }
+
+    // Backtick: auto-close to `` with cursor between.
+    if (char == '`') {
+      final text = newValue.text;
+      final newText = text.substring(0, insertPos + 1) +
+          '`' +
+          text.substring(insertPos + 1);
+      return TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: insertPos + 1),
+      );
+    }
+
+    // Bracket: auto-close to [](url) with cursor inside [].
+    if (char == '[') {
+      final text = newValue.text;
+      // Check if preceded by ! for image syntax.
+      if (insertPos > 0 && text[insertPos - 1] == '!') {
+        // Image: ![](url)
+        final newText = text.substring(0, insertPos + 1) +
+            '](url)' +
+            text.substring(insertPos + 1);
+        return TextEditingValue(
+          text: newText,
+          selection: TextSelection.collapsed(offset: insertPos + 1),
+        );
+      }
+      // Link: [](url)
+      final newText = text.substring(0, insertPos + 1) +
+          '](url)' +
+          text.substring(insertPos + 1);
+      return TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: insertPos + 1),
+      );
+    }
+
+    // Double-delimiter pairs: ** and ~~
+    if (char == '*' && insertPos > 0 && newValue.text[insertPos - 1] == '*') {
+      // Just typed **, auto-close to ****
+      final text = newValue.text;
+      final newText = text.substring(0, insertPos + 1) +
+          '**' +
+          text.substring(insertPos + 1);
+      return TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: insertPos + 1),
+      );
+    }
+
+    if (char == '~' && insertPos > 0 && newValue.text[insertPos - 1] == '~') {
+      // Just typed ~~, auto-close to ~~~~
+      final text = newValue.text;
+      final newText = text.substring(0, insertPos + 1) +
+          '~~' +
+          text.substring(insertPos + 1);
+      return TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: insertPos + 1),
+      );
+    }
+
+    return null;
+  }
+
+  /// Check if the cursor is inside a code context (inline code or code block).
+  bool _isInsideCodeContext(String text, int offset) {
+    // Check for code block: look for ``` before offset without a matching
+    // closing ``` before offset.
+    int codeBlockFences = 0;
+    int searchPos = 0;
+    while (searchPos < offset) {
+      // Find next line start.
+      int lineStart = searchPos;
+      int lineEnd = text.indexOf('\n', searchPos);
+      if (lineEnd == -1) lineEnd = text.length;
+
+      final line = text.substring(lineStart, lineEnd);
+      if (line.startsWith('```')) {
+        codeBlockFences++;
+      }
+
+      searchPos = lineEnd + 1;
+      if (searchPos > text.length) break;
+    }
+    // Odd number of fences means we're inside a code block.
+    if (codeBlockFences.isOdd) return true;
+
+    // Check for inline code: count unescaped backticks before offset on
+    // the current line.
+    int lineStart = offset;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') {
+      lineStart--;
+    }
+    int backtickCount = 0;
+    for (int i = lineStart; i < offset; i++) {
+      if (text[i] == '`') backtickCount++;
+    }
+    // Odd backtick count means we're inside inline code.
+    return backtickCount.isOdd;
+  }
+
+  // ---------------------------------------------------------------------------
   // Smart Enter
   // ---------------------------------------------------------------------------
 
