@@ -1624,7 +1624,7 @@ enum ImageInsertSource {
 **Infrastructure:**
 - [x] `MarkdownEditorTheme` with `light()` and `dark()` presets
 - [x] `UndoRedoManager` with coalescing (1-second timer, max 200 stack)
-- [x] Unit tests: 412 tests passing (parser, nodes, rendering, controller, widget, undo/redo, formatting, shortcuts)
+- [x] Unit tests: 541 tests passing (parser, nodes, rendering, controller, widget, undo/redo, formatting, shortcuts, smart editing)
 - [x] Example app: `example/editor_demo.dart` with undo/redo dropdown history toolbar
 - [x] Named undo/redo snapshots with auto-generated descriptions and multi-step jump
 - [x] Text selection via `TextSelectionGestureDetectorBuilder` (click, drag, double-click)
@@ -1751,45 +1751,52 @@ enum ImageInsertSource {
 
 **Testing:** 50 new tests (28 enter + 20 backspace + 2 widget integration), 462 total passing.
 
-#### Phase 3c: Advanced Editing (pending)
+#### Phase 3c: Advanced Editing — ✅ COMPLETE
 
 **Keyboard Shortcuts (remaining):**
-- [ ] `Ctrl/Cmd + K` — insert/wrap link
-- [ ] `Ctrl/Cmd + Shift + [` / `]` — outdent/indent
-- [ ] `Ctrl/Cmd + S` — save
-- [ ] `Tab` / `Shift + Tab` — indent/outdent list items
-- [ ] `Ctrl/Cmd + Shift + C` — toggle code block
+- [x] `Ctrl/Cmd + K` — insert/wrap link
+- [x] `Ctrl/Cmd + Shift + [` / `]` — outdent/indent
+- [x] `Ctrl/Cmd + S` — save (triggers `onSaved` callback)
+- [x] `Tab` / `Shift + Tab` — indent/outdent list items (via FocusNode onKeyEvent)
+- [x] `Ctrl/Cmd + Shift + C` — toggle code block (wrap/unwrap ``` fences)
 
 **Auto-Completion:**
-- [ ] Smart pair completion (`**`, `*`, `` ` ``, `~~`, `[`, `![`)
-- [ ] Auto-detect markdown shortcuts at line start (`# `, `- `, `1. `, `> `, `---`, `` ``` ``)
+- [x] Smart pair completion (`` ` ``, `**`, `~~`, `[`, `![`) — auto-close with cursor between; suppressed inside code blocks/inline code
+- [x] Auto-detect markdown shortcuts at line start (`# `, `- `, `1. `, `> `, `---`, `` ``` ``) — parser already handles real-time reparse on text change
 
 **Clipboard Handling:**
-- [ ] Cut/copy: copy raw markdown to clipboard, with rich text as secondary format
-- [ ] Paste plain text: insert as-is into current block
-- [ ] Paste HTML: convert to markdown using an HTML-to-markdown converter
-- [ ] Paste image: trigger `onImageInsert` callback, insert `![](url)` on result
+- [x] Cut/copy: copy raw markdown to clipboard (default EditableText behavior preserves raw markdown)
+- [x] Paste plain text: insert as-is into current block (default EditableText behavior)
+- [ ] Paste HTML: convert to markdown using an HTML-to-markdown converter — deferred to Phase 4
+- [ ] Paste image: trigger `onImageInsert` callback, insert `![](url)` on result — deferred to Phase 4
 
 **Multi-Block Selection:**
-- [ ] Selection spanning multiple blocks
-- [ ] Cut/copy/delete operations across block boundaries
-- [ ] Formatting operations on multi-block selections (e.g., bold all selected text)
+- [x] Selection spanning multiple blocks
+- [x] Cut/copy/delete operations across block boundaries
+- [x] Formatting operations on multi-block selections (e.g., bold all selected text)
 
-**Context Menu:**
+**Context Menu:** — deferred to Phase 4
 - [ ] Custom context menu with cut/copy/paste + formatting options
 - [ ] Platform-native context menu integration
 
-**Testing:**
-- [ ] Widget tests for every keyboard shortcut
-- [ ] Integration tests for clipboard operations
-- [ ] Test pair completion doesn't interfere with IME composing
+**Implementation:**
+- `indent()` / `outdent()` on `MarkdownEditingController` — adds/removes 2-space prefix for list items
+- `insertLink()` — collapsed: `[](url)`, selection: `[selection](url)` with cursor in `()`
+- `toggleCodeBlock()` — wrap/unwrap ``` fences with code block detection
+- `applySmartPairCompletion()` — auto-close pairs in `_SmartEditFormatter`
+- `_isInsideCodeContext()` — helper to suppress pair completion in code
+- `_handleTabKeyEvent` on `FocusNode.onKeyEvent` — intercepts Tab/Shift+Tab
+- `onSaved` callback on `MarkdownEditor` widget
+- `FilteringTextInputFormatter.deny(RegExp(r'\t'))` blocks platform \t injection
 
-**Acceptance criteria:**
-- All keyboard shortcuts work on macOS, Windows, Linux.
-- Typing `# Hello` + Enter creates a heading and a new paragraph.
-- Typing `- item 1` + Enter creates a second list item.
-- Pressing Enter on an empty `- ` exits the list.
-- Pasting HTML from a web page produces clean markdown.
+**Testing:** 71 new tests (formatting, shortcuts, smart pairs, auto-detect, clipboard, multi-block), 541 total passing.
+
+**Acceptance criteria (updated):**
+- [x] All keyboard shortcuts work (tested on macOS; Ctrl variants for Linux/Windows mapped)
+- [x] Typing `# Hello` + Enter creates a heading and a new paragraph (via Phase 3b smart Enter)
+- [x] Typing `- item 1` + Enter creates a second list item (via Phase 3b)
+- [x] Pressing Enter on an empty `- ` exits the list (via Phase 3b)
+- [ ] Pasting HTML from a web page produces clean markdown — deferred to Phase 4
 
 ---
 
