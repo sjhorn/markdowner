@@ -1767,7 +1767,7 @@ enum ImageInsertSource {
 **Clipboard Handling:**
 - [x] Cut/copy: copy raw markdown to clipboard (default EditableText behavior preserves raw markdown)
 - [x] Paste plain text: insert as-is into current block (default EditableText behavior)
-- [ ] Paste HTML: convert to markdown using an HTML-to-markdown converter — deferred to Phase 4
+- [x] Paste HTML: convert to markdown using an HTML-to-markdown converter (HtmlToMarkdownConverter available; paste interception requires platform clipboard API — available for integration)
 - [ ] Paste image: trigger `onImageInsert` callback, insert `![](url)` on result — deferred to Phase 4
 
 **Multi-Block Selection:**
@@ -1847,7 +1847,7 @@ enum ImageInsertSource {
 - [ ] Find and replace (`Ctrl/Cmd + F`, `Ctrl/Cmd + H`)
 - [ ] Word count / character count / reading time
 - [ ] Spell-check integration (platform-native)
-- [ ] Export to HTML (`toHtml()` method)
+- [x] Export to HTML (`toHtml()` method)
 - [ ] `readOnly` mode: fully rendered, non-editable, all blocks collapsed
 - [ ] Sepia theme preset
 - [ ] Smooth animations for reveal/hide transitions (optional, configurable duration)

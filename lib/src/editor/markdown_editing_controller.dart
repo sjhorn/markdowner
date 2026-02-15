@@ -6,6 +6,7 @@ import '../parsing/markdown_parser.dart';
 import '../rendering/markdown_render_engine.dart';
 import '../theme/markdown_editor_theme.dart';
 import '../toolbar/markdown_toolbar.dart';
+import '../utils/markdown_to_html.dart';
 
 /// A [TextEditingController] that parses its text as markdown and builds
 /// styled [TextSpan] trees with the reveal/hide WYSIWYG mechanic.
@@ -36,6 +37,9 @@ class MarkdownEditingController extends TextEditingController {
 
   /// The theme used for rendering.
   MarkdownEditorTheme get theme => _theme;
+
+  /// Export the current document as HTML.
+  String toHtml() => MarkdownToHtmlConverter().convert(_document);
 
   /// The index of the block containing the cursor, or -1.
   int get activeBlockIndex {
