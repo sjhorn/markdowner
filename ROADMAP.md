@@ -1724,7 +1724,34 @@ enum ImageInsertSource {
 
 **Testing:** 34 new tests (20 formatting commands + 14 shortcut/widget tests), 412 total passing.
 
-#### Phase 3b: Smart Enter/Backspace (pending)
+#### Phase 3b: Smart Enter/Backspace ✅ COMPLETE
+
+**Approach:** `TextInputFormatter` — intercepts text input changes inside `EditableText` before they reach the controller, avoiding the double-handling race condition between key events and text input deltas.
+
+**Smart Enter Behavior:**
+- [x] `Enter` in list item → new list item with same marker (auto-increment for ordered)
+- [x] `Enter` on empty list item → exit list, remove prefix
+- [x] `Enter` in blockquote → continue with `> ` prefix
+- [x] `Enter` on empty blockquote → exit blockquote
+- [x] `Enter` after heading → plain newline (no continuation)
+- [x] `Enter` in task list → continue with `- [ ] ` (always unchecked)
+- [x] `Enter` mid-line → splits content with prefix on new line
+- [x] `Enter` in normal paragraph → pass-through (default behaviour)
+
+**Smart Backspace Behavior:**
+- [x] `Backspace` at content start of list item → remove prefix, keep content
+- [x] `Backspace` at content start of heading → remove heading prefix
+- [x] `Backspace` at content start of blockquote → remove `>` prefix
+- [x] `Backspace` elsewhere → pass-through (default behaviour)
+
+**Implementation:**
+- `applySmartEnter()` / `applySmartBackspace()` on `MarkdownEditingController` — pure text manipulation using line-level regex (no AST dependency)
+- `_SmartEditFormatter extends TextInputFormatter` in widget — detects Enter/Backspace patterns, delegates to controller
+- Formatter wired into `EditableText.inputFormatters`
+
+**Testing:** 50 new tests (28 enter + 20 backspace + 2 widget integration), 462 total passing.
+
+#### Phase 3c: Advanced Editing (pending)
 
 **Keyboard Shortcuts (remaining):**
 - [ ] `Ctrl/Cmd + K` — insert/wrap link
@@ -1733,24 +1760,8 @@ enum ImageInsertSource {
 - [ ] `Tab` / `Shift + Tab` — indent/outdent list items
 - [ ] `Ctrl/Cmd + Shift + C` — toggle code block
 
-**Smart Enter Behavior:**
-- [ ] `Enter` in list item → new list item with same marker (auto-increment for ordered)
-- [ ] `Enter` on empty list item → exit list, convert to paragraph
-- [ ] `Enter` in blockquote → continue with `> ` prefix
-- [ ] `Enter` on empty blockquote → exit blockquote
-- [ ] `Enter` in code block → new line within code block
-- [ ] Double `Enter` at end of code block → exit code block
-- [ ] `Enter` in normal paragraph → new paragraph
-
-**Smart Backspace Behavior:**
-- [ ] `Backspace` at start of list item → outdent or convert to paragraph
-- [ ] `Backspace` at start of heading → remove heading prefix
-- [ ] `Backspace` at start of blockquote → remove `>` prefix
-- [ ] `Backspace` at start of block → merge with previous block
-
 **Auto-Completion:**
 - [ ] Smart pair completion (`**`, `*`, `` ` ``, `~~`, `[`, `![`)
-- [ ] Auto-continuation of lists and blockquotes
 - [ ] Auto-detect markdown shortcuts at line start (`# `, `- `, `1. `, `> `, `---`, `` ``` ``)
 
 **Clipboard Handling:**
@@ -1770,7 +1781,6 @@ enum ImageInsertSource {
 
 **Testing:**
 - [ ] Widget tests for every keyboard shortcut
-- [ ] Widget tests for smart Enter/Backspace in every block context
 - [ ] Integration tests for clipboard operations
 - [ ] Test pair completion doesn't interfere with IME composing
 
