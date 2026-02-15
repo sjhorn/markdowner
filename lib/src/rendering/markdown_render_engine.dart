@@ -14,17 +14,51 @@ import '../theme/markdown_editor_theme.dart';
 class MarkdownRenderEngine {
   final MarkdownEditorTheme theme;
 
+  /// Span cache keyed by (sourceText, revealed).
+  /// Avoids rebuilding TextSpans for unchanged blocks.
+  final Map<(String, bool), TextSpan> _spanCache = {};
+
   MarkdownRenderEngine({required this.theme});
 
   /// Build a TextSpan for [block] with syntax delimiters visible (muted).
   TextSpan buildRevealedSpan(MarkdownBlock block, TextStyle baseStyle) {
-    return _buildBlockSpan(block, baseStyle, revealed: true);
+    return _cachedBuild(block, baseStyle, revealed: true);
   }
 
   /// Build a TextSpan for [block] with syntax delimiters near-invisible.
   TextSpan buildCollapsedSpan(MarkdownBlock block, TextStyle baseStyle) {
-    return _buildBlockSpan(block, baseStyle, revealed: false);
+    return _cachedBuild(block, baseStyle, revealed: false);
   }
+
+  TextSpan _cachedBuild(
+    MarkdownBlock block,
+    TextStyle baseStyle, {
+    required bool revealed,
+  }) {
+    final key = (block.sourceText, revealed);
+    final cached = _spanCache[key];
+    if (cached != null) return cached;
+
+    final span = _buildBlockSpan(block, baseStyle, revealed: revealed);
+    _spanCache[key] = span;
+
+    // Keep cache bounded to prevent memory growth in long editing sessions.
+    if (_spanCache.length > 500) {
+      // Remove oldest entries (first ~100).
+      final keys = _spanCache.keys.toList();
+      for (var i = 0; i < 100 && i < keys.length; i++) {
+        _spanCache.remove(keys[i]);
+      }
+    }
+
+    return span;
+  }
+
+  /// Clear the span cache (e.g., on theme change).
+  void clearCache() => _spanCache.clear();
+
+  /// Number of cached spans (for testing/debugging).
+  int get cacheSize => _spanCache.length;
 
   TextSpan _buildBlockSpan(
     MarkdownBlock block,

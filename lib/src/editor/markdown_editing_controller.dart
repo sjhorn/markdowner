@@ -1,8 +1,7 @@
 import 'package:flutter/widgets.dart';
-import 'package:petitparser/petitparser.dart' as pp;
 
 import '../core/markdown_nodes.dart';
-import '../parsing/markdown_parser.dart';
+import '../parsing/incremental_parser.dart';
 import '../rendering/markdown_render_engine.dart';
 import '../theme/markdown_editor_theme.dart';
 import '../toolbar/markdown_toolbar.dart';
@@ -18,7 +17,7 @@ class MarkdownEditingController extends TextEditingController {
   MarkdownDocument _document = MarkdownDocument(blocks: []);
   final MarkdownRenderEngine _engine;
   final MarkdownEditorTheme _theme;
-  late final pp.Parser _parser;
+  late final IncrementalParseEngine _parseEngine;
 
   MarkdownEditingController({
     String? text,
@@ -28,7 +27,7 @@ class MarkdownEditingController extends TextEditingController {
           theme: theme ?? MarkdownEditorTheme.light(),
         ),
         super(text: text ?? '') {
-    _parser = MarkdownParserDefinition().build();
+    _parseEngine = IncrementalParseEngine();
     _reparse();
   }
 
@@ -186,11 +185,7 @@ class MarkdownEditingController extends TextEditingController {
       _document = MarkdownDocument(blocks: []);
       return;
     }
-    final result = _parser.parse(text);
-    if (result is pp.Success) {
-      _document = result.value as MarkdownDocument;
-    }
-    // On parse failure, keep the previous document.
+    _document = _parseEngine.parse(text);
   }
 
   // ---------------------------------------------------------------------------

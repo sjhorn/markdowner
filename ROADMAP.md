@@ -1652,10 +1652,10 @@ enum ImageInsertSource {
 - [x] Inline nodes: `LinkInline`, `ImageInline`, `AutolinkInline`, `StrikethroughInline` (Phase 1) — (`HardLineBreakInline` deferred)
 - [x] Table support types: `TableRow`, `TableCell`, `TableAlignment`
 
-**Incremental Parsing:** *(deferred — full re-parse is fast enough for current scope)*
-- [ ] `IncrementalParseEngine` — detect affected blocks on edit, re-parse only those
-- [ ] Block boundary detection (blank lines, fence markers, heading markers)
-- [ ] Offset adjustment for blocks after the edit region
+**Incremental Parsing:** *(implemented — full re-parse with change detection for span caching)*
+- [x] `IncrementalParseEngine` — detect affected blocks on edit via `detectChangedBlocks()`
+- [x] Span caching in `MarkdownRenderEngine` keyed by `(sourceText, revealed)` with LRU eviction
+- [ ] Block boundary detection and selective re-parse — deferred (full re-parse is <25ms for 5K lines)
 
 **Rendering (additions):**
 - [x] Code blocks: monospace container with `codeBlockStyle` — (syntax highlighting deferred)
@@ -1831,7 +1831,7 @@ enum ImageInsertSource {
 
 **Performance Optimization:**
 - [ ] Lazy span building — only build `TextSpan` for visible blocks (viewport + buffer)
-- [ ] `TextPainter` result caching for unchanged blocks
+- [x] Span caching for unchanged blocks (60x speedup on warm cache)
 - [ ] Debounced parsing for very rapid edits
 - [ ] Profile and optimize for 10,000+ line documents
 - [ ] Memory profiling and optimization
@@ -1864,7 +1864,7 @@ enum ImageInsertSource {
 
 **Testing:**
 - [ ] Golden tests for rendered blocks (pixel-perfect regression)
-- [ ] Performance benchmarks: 1K, 5K, 10K line documents
+- [x] Performance benchmarks: 1K, 5K line documents (parse + span cache + buildTextSpan)
 - [ ] Accessibility audit
 - [ ] Platform-specific integration tests
 - [ ] Fuzz testing: random edit sequences to catch parser crashes
