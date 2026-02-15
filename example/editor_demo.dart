@@ -231,6 +231,28 @@ That was a thematic break above. Happy editing!
                 ?.performToolbarAction((s) => s.toggleStrikethrough()),
           ),
           const VerticalDivider(width: 1),
+          PopupMenuButton<int>(
+            icon: const Icon(Icons.title),
+            tooltip: 'Heading level',
+            offset: const Offset(0, kToolbarHeight),
+            onSelected: (level) {
+              _editorKey.currentState
+                  ?.performToolbarAction((s) => s.setHeadingLevel(level));
+            },
+            itemBuilder: (context) => [
+              for (var i = 1; i <= 6; i++)
+                PopupMenuItem<int>(
+                  value: i,
+                  child: Text('H$i'),
+                ),
+              const PopupMenuDivider(),
+              const PopupMenuItem<int>(
+                value: 0,
+                child: Text('Normal'),
+              ),
+            ],
+          ),
+          const VerticalDivider(width: 1),
           _buildUndoSplitButton(),
           _buildRedoSplitButton(),
           // Push past the debug ribbon.
