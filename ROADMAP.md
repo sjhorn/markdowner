@@ -1624,7 +1624,7 @@ enum ImageInsertSource {
 **Infrastructure:**
 - [x] `MarkdownEditorTheme` with `light()` and `dark()` presets
 - [x] `UndoRedoManager` with coalescing (1-second timer, max 200 stack)
-- [x] Unit tests: 378 tests passing (parser, nodes, rendering, controller, widget, undo/redo)
+- [x] Unit tests: 412 tests passing (parser, nodes, rendering, controller, widget, undo/redo, formatting, shortcuts)
 - [x] Example app: `example/editor_demo.dart` with undo/redo dropdown history toolbar
 - [x] Named undo/redo snapshots with auto-generated descriptions and multi-step jump
 - [x] Text selection via `TextSelectionGestureDetectorBuilder` (click, drag, double-click)
@@ -1694,20 +1694,44 @@ enum ImageInsertSource {
 
 **Goal:** Full keyboard-driven editing experience matching Typora's behavior.
 
-**Keyboard Shortcuts:**
-- [ ] `Ctrl/Cmd + B` — toggle bold
-- [ ] `Ctrl/Cmd + I` — toggle italic
+#### Phase 3a: Inline Format Toggles + Keyboard Shortcuts — ✅ COMPLETE
+
+**Controller format toggle methods:**
+- [x] `toggleBold()` — wrap/unwrap `**` around selection, insert empty pair at collapsed cursor
+- [x] `toggleItalic()` — wrap/unwrap `*` around selection
+- [x] `toggleInlineCode()` — wrap/unwrap `` ` `` around selection
+- [x] `toggleStrikethrough()` — wrap/unwrap `~~` around selection
+- [x] `setHeadingLevel(int)` — set/toggle heading prefix on current line (0=paragraph, 1–6)
+- [x] `_toggleInlineDelimiter(String)` — shared helper for all inline format toggles
+
+**Keyboard shortcut infrastructure:**
+- [x] `Shortcuts` + `Actions` widget wrapping `EditableText`
+- [x] `Intent` subclasses for all actions (formatting, headings, undo/redo)
+- [x] Platform-aware modifier keys (Cmd on macOS, Ctrl on others)
+
+**Keyboard Shortcuts (implemented):**
+- [x] `Ctrl/Cmd + B` — toggle bold
+- [x] `Ctrl/Cmd + I` — toggle italic
+- [x] `Ctrl/Cmd + `` ` `` ` — toggle inline code
+- [x] `Ctrl/Cmd + Shift + K` — toggle strikethrough
+- [x] `Ctrl/Cmd + 1..6` — set heading level
+- [x] `Ctrl/Cmd + 0` — clear heading
+- [x] `Ctrl/Cmd + Z` / `Ctrl/Cmd + Shift + Z` — undo/redo
+
+**Example toolbar:**
+- [x] Bold, italic, code, strikethrough `IconButton` widgets
+- [x] Split undo/redo buttons (click for single step, dropdown for history)
+
+**Testing:** 34 new tests (20 formatting commands + 14 shortcut/widget tests), 412 total passing.
+
+#### Phase 3b: Smart Enter/Backspace (pending)
+
+**Keyboard Shortcuts (remaining):**
 - [ ] `Ctrl/Cmd + K` — insert/wrap link
-- [ ] `Ctrl/Cmd + `` ` `` ` — toggle inline code
-- [ ] `Ctrl/Cmd + Shift + K` — toggle strikethrough
-- [ ] `Ctrl/Cmd + 1..6` — set heading level
-- [ ] `Ctrl/Cmd + 0` — clear heading
 - [ ] `Ctrl/Cmd + Shift + [` / `]` — outdent/indent
-- [ ] `Ctrl/Cmd + Z` / `Ctrl/Cmd + Shift + Z` — undo/redo
 - [ ] `Ctrl/Cmd + S` — save
 - [ ] `Tab` / `Shift + Tab` — indent/outdent list items
 - [ ] `Ctrl/Cmd + Shift + C` — toggle code block
-- [ ] Platform-aware modifier keys (Cmd on macOS, Ctrl on others)
 
 **Smart Enter Behavior:**
 - [ ] `Enter` in list item → new list item with same marker (auto-increment for ordered)
