@@ -102,81 +102,91 @@ That was a thematic break above. Happy editing!
     super.dispose();
   }
 
-  Widget _buildUndoDropdown() {
-    return PopupMenuButton<int>(
-      tooltip: 'Undo history',
-      offset: const Offset(0, kToolbarHeight),
-      onSelected: (index) {
-        _editorKey.currentState?.undoSteps(index + 1);
-        setState(() {});
-      },
-      itemBuilder: (context) {
-        final names = _editorKey.currentState?.undoNames ?? [];
-        if (names.isEmpty) {
-          return [
-            const PopupMenuItem<int>(
-              enabled: false,
-              child: Text('No undo history'),
-            ),
-          ];
-        }
-        return [
-          for (var i = 0; i < names.length; i++)
-            PopupMenuItem<int>(
-              value: i,
-              child: Text(names[i]),
-            ),
-        ];
-      },
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.undo),
-            Icon(Icons.arrow_drop_down, size: 18),
-          ],
+  Widget _buildUndoSplitButton() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.undo),
+          tooltip: 'Undo (Cmd+Z)',
+          onPressed: () {
+            _editorKey.currentState?.undo();
+            setState(() {});
+          },
         ),
-      ),
+        PopupMenuButton<int>(
+          tooltip: 'Undo history',
+          offset: const Offset(0, kToolbarHeight),
+          onSelected: (index) {
+            _editorKey.currentState?.undoSteps(index + 1);
+            setState(() {});
+          },
+          itemBuilder: (context) {
+            final names = _editorKey.currentState?.undoNames ?? [];
+            if (names.isEmpty) {
+              return [
+                const PopupMenuItem<int>(
+                  enabled: false,
+                  child: Text('No undo history'),
+                ),
+              ];
+            }
+            return [
+              for (var i = 0; i < names.length; i++)
+                PopupMenuItem<int>(
+                  value: i,
+                  child: Text(names[i]),
+                ),
+            ];
+          },
+          padding: EdgeInsets.zero,
+          child: const Icon(Icons.arrow_drop_down, size: 18),
+        ),
+      ],
     );
   }
 
-  Widget _buildRedoDropdown() {
-    return PopupMenuButton<int>(
-      tooltip: 'Redo history',
-      offset: const Offset(0, kToolbarHeight),
-      onSelected: (index) {
-        _editorKey.currentState?.redoSteps(index + 1);
-        setState(() {});
-      },
-      itemBuilder: (context) {
-        final names = _editorKey.currentState?.redoNames ?? [];
-        if (names.isEmpty) {
-          return [
-            const PopupMenuItem<int>(
-              enabled: false,
-              child: Text('No redo history'),
-            ),
-          ];
-        }
-        return [
-          for (var i = 0; i < names.length; i++)
-            PopupMenuItem<int>(
-              value: i,
-              child: Text(names[i]),
-            ),
-        ];
-      },
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.redo),
-            Icon(Icons.arrow_drop_down, size: 18),
-          ],
+  Widget _buildRedoSplitButton() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.redo),
+          tooltip: 'Redo (Cmd+Shift+Z)',
+          onPressed: () {
+            _editorKey.currentState?.redo();
+            setState(() {});
+          },
         ),
-      ),
+        PopupMenuButton<int>(
+          tooltip: 'Redo history',
+          offset: const Offset(0, kToolbarHeight),
+          onSelected: (index) {
+            _editorKey.currentState?.redoSteps(index + 1);
+            setState(() {});
+          },
+          itemBuilder: (context) {
+            final names = _editorKey.currentState?.redoNames ?? [];
+            if (names.isEmpty) {
+              return [
+                const PopupMenuItem<int>(
+                  enabled: false,
+                  child: Text('No redo history'),
+                ),
+              ];
+            }
+            return [
+              for (var i = 0; i < names.length; i++)
+                PopupMenuItem<int>(
+                  value: i,
+                  child: Text(names[i]),
+                ),
+            ];
+          },
+          padding: EdgeInsets.zero,
+          child: const Icon(Icons.arrow_drop_down, size: 18),
+        ),
+      ],
     );
   }
 
@@ -192,8 +202,30 @@ That was a thematic break above. Happy editing!
           ],
         ),
         actions: [
-          _buildUndoDropdown(),
-          _buildRedoDropdown(),
+          IconButton(
+            icon: const Icon(Icons.format_bold),
+            tooltip: 'Bold (Cmd+B)',
+            onPressed: () => _editorKey.currentState?.toggleBold(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.format_italic),
+            tooltip: 'Italic (Cmd+I)',
+            onPressed: () => _editorKey.currentState?.toggleItalic(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.code),
+            tooltip: 'Inline code (Cmd+`)',
+            onPressed: () => _editorKey.currentState?.toggleInlineCode(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.strikethrough_s),
+            tooltip: 'Strikethrough (Cmd+Shift+K)',
+            onPressed: () =>
+                _editorKey.currentState?.toggleStrikethrough(),
+          ),
+          const VerticalDivider(width: 1),
+          _buildUndoSplitButton(),
+          _buildRedoSplitButton(),
           // Push past the debug ribbon.
           Container(width: 40),
         ],

@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../editor/markdown_editing_controller.dart';
 import '../theme/markdown_editor_theme.dart';
@@ -136,6 +138,16 @@ class MarkdownEditorState extends State<MarkdownEditor> {
     return true;
   }
 
+  // ---------------------------------------------------------------------------
+  // Format toggle delegates
+  // ---------------------------------------------------------------------------
+
+  void toggleBold() => _controller.toggleBold();
+  void toggleItalic() => _controller.toggleItalic();
+  void toggleInlineCode() => _controller.toggleInlineCode();
+  void toggleStrikethrough() => _controller.toggleStrikethrough();
+  void setHeadingLevel(int level) => _controller.setHeadingLevel(level);
+
   @override
   void initState() {
     super.initState();
@@ -227,27 +239,99 @@ class MarkdownEditorState extends State<MarkdownEditor> {
     super.dispose();
   }
 
+  static bool get _isMacOS =>
+      defaultTargetPlatform == TargetPlatform.macOS;
+
+  Map<ShortcutActivator, Intent> get _shortcuts => {
+        // Inline formatting
+        SingleActivator(LogicalKeyboardKey.keyB,
+            meta: _isMacOS, control: !_isMacOS): const _ToggleBoldIntent(),
+        SingleActivator(LogicalKeyboardKey.keyI,
+            meta: _isMacOS, control: !_isMacOS): const _ToggleItalicIntent(),
+        SingleActivator(LogicalKeyboardKey.keyK,
+            shift: true, meta: _isMacOS, control: !_isMacOS):
+            const _ToggleStrikethroughIntent(),
+        SingleActivator(LogicalKeyboardKey.backquote,
+            meta: _isMacOS, control: !_isMacOS):
+            const _ToggleInlineCodeIntent(),
+
+        // Headings
+        SingleActivator(LogicalKeyboardKey.digit1,
+            meta: _isMacOS, control: !_isMacOS):
+            const _SetHeadingLevelIntent(1),
+        SingleActivator(LogicalKeyboardKey.digit2,
+            meta: _isMacOS, control: !_isMacOS):
+            const _SetHeadingLevelIntent(2),
+        SingleActivator(LogicalKeyboardKey.digit3,
+            meta: _isMacOS, control: !_isMacOS):
+            const _SetHeadingLevelIntent(3),
+        SingleActivator(LogicalKeyboardKey.digit4,
+            meta: _isMacOS, control: !_isMacOS):
+            const _SetHeadingLevelIntent(4),
+        SingleActivator(LogicalKeyboardKey.digit5,
+            meta: _isMacOS, control: !_isMacOS):
+            const _SetHeadingLevelIntent(5),
+        SingleActivator(LogicalKeyboardKey.digit6,
+            meta: _isMacOS, control: !_isMacOS):
+            const _SetHeadingLevelIntent(6),
+        SingleActivator(LogicalKeyboardKey.digit0,
+            meta: _isMacOS, control: !_isMacOS):
+            const _SetHeadingLevelIntent(0),
+
+        // Undo / Redo
+        SingleActivator(LogicalKeyboardKey.keyZ,
+            meta: _isMacOS, control: !_isMacOS): const _UndoIntent(),
+        SingleActivator(LogicalKeyboardKey.keyZ,
+            shift: true, meta: _isMacOS, control: !_isMacOS):
+            const _RedoIntent(),
+      };
+
+  Map<Type, Action<Intent>> get _actions => {
+        _ToggleBoldIntent: CallbackAction<_ToggleBoldIntent>(
+            onInvoke: (_) => toggleBold()),
+        _ToggleItalicIntent: CallbackAction<_ToggleItalicIntent>(
+            onInvoke: (_) => toggleItalic()),
+        _ToggleInlineCodeIntent: CallbackAction<_ToggleInlineCodeIntent>(
+            onInvoke: (_) => toggleInlineCode()),
+        _ToggleStrikethroughIntent:
+            CallbackAction<_ToggleStrikethroughIntent>(
+                onInvoke: (_) => toggleStrikethrough()),
+        _SetHeadingLevelIntent: CallbackAction<_SetHeadingLevelIntent>(
+            onInvoke: (intent) => setHeadingLevel(intent.level)),
+        _UndoIntent:
+            CallbackAction<_UndoIntent>(onInvoke: (_) => undo()),
+        _RedoIntent:
+            CallbackAction<_RedoIntent>(onInvoke: (_) => redo()),
+      };
+
   @override
   Widget build(BuildContext context) {
     final theme = widget.theme ?? MarkdownEditorTheme.light();
     return Container(
       color: theme.backgroundColor,
       padding: widget.padding,
-      child: _gestureDetectorBuilder.buildGestureDetector(
-        behavior: HitTestBehavior.translucent,
-        child: EditableText(
-          key: _editableKey,
-          rendererIgnoresPointer: true,
-          controller: _controller,
-          focusNode: _focusNode,
-          style: theme.baseStyle,
-          cursorColor: theme.cursorColor,
-          selectionColor: theme.selectionColor,
-          backgroundCursorColor: theme.cursorColor.withValues(alpha: 0.1),
-          readOnly: widget.readOnly,
-          autofocus: widget.autofocus,
-          maxLines: null,
-          keyboardType: TextInputType.multiline,
+      child: Shortcuts(
+        shortcuts: _shortcuts,
+        child: Actions(
+          actions: _actions,
+          child: _gestureDetectorBuilder.buildGestureDetector(
+            behavior: HitTestBehavior.translucent,
+            child: EditableText(
+              key: _editableKey,
+              rendererIgnoresPointer: true,
+              controller: _controller,
+              focusNode: _focusNode,
+              style: theme.baseStyle,
+              cursorColor: theme.cursorColor,
+              selectionColor: theme.selectionColor,
+              backgroundCursorColor:
+                  theme.cursorColor.withValues(alpha: 0.1),
+              readOnly: widget.readOnly,
+              autofocus: widget.autofocus,
+              maxLines: null,
+              keyboardType: TextInputType.multiline,
+            ),
+          ),
         ),
       ),
     );
@@ -266,4 +350,37 @@ class _TextSelectionDelegate
 
   @override
   bool get selectionEnabled => true;
+}
+
+// ---------------------------------------------------------------------------
+// Intent classes for keyboard shortcuts
+// ---------------------------------------------------------------------------
+
+class _ToggleBoldIntent extends Intent {
+  const _ToggleBoldIntent();
+}
+
+class _ToggleItalicIntent extends Intent {
+  const _ToggleItalicIntent();
+}
+
+class _ToggleInlineCodeIntent extends Intent {
+  const _ToggleInlineCodeIntent();
+}
+
+class _ToggleStrikethroughIntent extends Intent {
+  const _ToggleStrikethroughIntent();
+}
+
+class _SetHeadingLevelIntent extends Intent {
+  final int level;
+  const _SetHeadingLevelIntent(this.level);
+}
+
+class _UndoIntent extends Intent {
+  const _UndoIntent();
+}
+
+class _RedoIntent extends Intent {
+  const _RedoIntent();
 }
