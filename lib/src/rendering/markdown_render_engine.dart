@@ -40,7 +40,7 @@ class MarkdownRenderEngine {
       case ParagraphBlock():
         return _buildParagraphSpan(block, baseStyle, delimiterStyle, revealed);
       case ThematicBreakBlock():
-        return TextSpan(text: block.sourceText, style: delimiterStyle);
+        return _buildThematicBreakSpan(block, delimiterStyle, revealed);
       case BlankLineBlock():
         return TextSpan(text: block.sourceText, style: baseStyle);
       case FencedCodeBlock():
@@ -48,11 +48,13 @@ class MarkdownRenderEngine {
       case BlockquoteBlock():
         return _buildBlockquoteSpan(block, delimiterStyle, revealed);
       case UnorderedListItemBlock():
-        return _buildListItemSpan(
-            block, block.prefixLength, block.children, baseStyle, delimiterStyle, revealed);
+        return _buildTaskAwareListItemSpan(
+            block, block.prefixLength, block.children, baseStyle, delimiterStyle, revealed,
+            isTask: block.isTask, taskChecked: block.taskChecked);
       case OrderedListItemBlock():
-        return _buildListItemSpan(
-            block, block.prefixLength, block.children, baseStyle, delimiterStyle, revealed);
+        return _buildTaskAwareListItemSpan(
+            block, block.prefixLength, block.children, baseStyle, delimiterStyle, revealed,
+            isTask: block.isTask, taskChecked: block.taskChecked);
       case SetextHeadingBlock():
         return _buildSetextHeadingSpan(block, baseStyle, delimiterStyle, revealed);
       case TableBlock():
@@ -248,15 +250,80 @@ class MarkdownRenderEngine {
     );
   }
 
-  TextSpan _buildListItemSpan(
+  TextSpan _buildThematicBreakSpan(
+    ThematicBreakBlock block,
+    TextStyle delimiterStyle,
+    bool revealed,
+  ) {
+    if (revealed) {
+      return TextSpan(text: block.sourceText, style: delimiterStyle);
+    }
+    // Collapsed mode: split marker text from trailing newline for styling.
+    final src = block.sourceText;
+    final markerEnd = src.indexOf('\n');
+    if (markerEnd < 0) {
+      return TextSpan(text: src, style: theme.thematicBreakStyle);
+    }
+    return TextSpan(
+      children: [
+        TextSpan(text: src.substring(0, markerEnd), style: theme.thematicBreakStyle),
+        TextSpan(text: src.substring(markerEnd), style: theme.thematicBreakStyle),
+      ],
+    );
+  }
+
+  TextSpan _buildTaskAwareListItemSpan(
     MarkdownBlock block,
     int prefixLen,
     List<MarkdownInline> children,
     TextStyle baseStyle,
     TextStyle delimiterStyle,
-    bool revealed,
-  ) {
+    bool revealed, {
+    required bool isTask,
+    required bool? taskChecked,
+  }) {
     final src = block.sourceText;
+
+    // In collapsed mode with a task item, split the prefix to style the
+    // checkbox part ([x] or [ ]) differently from the marker.
+    if (!revealed && isTask && taskChecked != null) {
+      final prefix = src.substring(0, prefixLen);
+      // Find the checkbox part within the prefix: "[ ] " or "[x] "
+      final checkboxStart = prefix.indexOf('[');
+      if (checkboxStart >= 0) {
+        final checkboxEnd = prefix.indexOf(']', checkboxStart) + 1;
+        final markerPart = prefix.substring(0, checkboxStart);
+        final checkboxPart = prefix.substring(checkboxStart, checkboxEnd);
+        final spacePart = prefix.substring(checkboxEnd);
+
+        final checkboxStyle = taskChecked
+            ? theme.taskCheckedStyle
+            : theme.taskUncheckedStyle;
+
+        final inlineSpans = _buildInlineSpanList(
+          children,
+          baseStyle,
+          delimiterStyle,
+          revealed,
+        );
+        final contentEnd = children.isEmpty
+            ? prefixLen
+            : children.last.sourceStop - block.sourceStart;
+        final suffix = src.substring(contentEnd);
+
+        return TextSpan(
+          children: [
+            TextSpan(text: markerPart, style: delimiterStyle),
+            TextSpan(text: checkboxPart, style: checkboxStyle),
+            TextSpan(text: spacePart, style: delimiterStyle),
+            ...inlineSpans,
+            if (suffix.isNotEmpty) TextSpan(text: suffix, style: baseStyle),
+          ],
+        );
+      }
+    }
+
+    // Default: non-task or revealed mode.
     final prefix = src.substring(0, prefixLen);
     final inlineSpans = _buildInlineSpanList(
       children,
@@ -284,6 +351,9 @@ class MarkdownRenderEngine {
     bool revealed,
   ) {
     final contentStyle = theme.blockquoteStyle;
+    // In collapsed mode, use a visible blockquote marker style instead
+    // of hiding the "> " prefix.
+    final markerStyle = revealed ? delimiterStyle : theme.blockquoteMarkerStyle;
     final inlineSpans = _buildInlineSpanList(
       block.children,
       contentStyle,
@@ -298,7 +368,7 @@ class MarkdownRenderEngine {
 
     return TextSpan(
       children: [
-        TextSpan(text: '> ', style: delimiterStyle),
+        TextSpan(text: '> ', style: markerStyle),
         ...inlineSpans,
         if (suffix.isNotEmpty) TextSpan(text: suffix, style: contentStyle),
       ],

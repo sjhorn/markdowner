@@ -16,6 +16,18 @@ class MarkdownEditorTheme {
   final TextStyle codeBlockStyle;
   final TextStyle blockquoteStyle;
 
+  /// Style for thematic break markers (`---`, `***`) in collapsed mode.
+  final TextStyle thematicBreakStyle;
+
+  /// Style for task checkbox `[ ]` in collapsed mode.
+  final TextStyle taskUncheckedStyle;
+
+  /// Style for task checkbox `[x]` in collapsed mode.
+  final TextStyle taskCheckedStyle;
+
+  /// Style for the `> ` marker in collapsed blockquotes (visible but muted).
+  final TextStyle blockquoteMarkerStyle;
+
   /// Style for syntax delimiters in revealed mode (muted gray).
   final TextStyle syntaxDelimiterStyle;
 
@@ -37,6 +49,10 @@ class MarkdownEditorTheme {
     required this.linkStyle,
     required this.codeBlockStyle,
     required this.blockquoteStyle,
+    required this.thematicBreakStyle,
+    required this.taskUncheckedStyle,
+    required this.taskCheckedStyle,
+    required this.blockquoteMarkerStyle,
     required this.syntaxDelimiterStyle,
     required this.hiddenSyntaxStyle,
     required this.cursorColor,
@@ -88,6 +104,28 @@ class MarkdownEditorTheme {
       blockquoteStyle: base.copyWith(
         fontStyle: FontStyle.italic,
         color: const Color(0xFF666666),
+      ),
+      thematicBreakStyle: base.copyWith(
+        decoration: TextDecoration.lineThrough,
+        decorationColor: const Color(0xFFCCCCCC),
+        decorationThickness: 2.0,
+        color: const Color(0x00000000),
+        letterSpacing: 4.0,
+      ),
+      taskUncheckedStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 14,
+        color: const Color(0xFF999999),
+      ),
+      taskCheckedStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 14,
+        color: const Color(0xFF4CAF50),
+        fontWeight: FontWeight.bold,
+      ),
+      blockquoteMarkerStyle: base.copyWith(
+        color: const Color(0xFF2196F3),
+        fontWeight: FontWeight.bold,
       ),
       syntaxDelimiterStyle: base.copyWith(
         color: const Color(0xFFAAAAAA),
@@ -147,6 +185,28 @@ class MarkdownEditorTheme {
         fontStyle: FontStyle.italic,
         color: const Color(0xFF999999),
       ),
+      thematicBreakStyle: base.copyWith(
+        decoration: TextDecoration.lineThrough,
+        decorationColor: const Color(0xFF555555),
+        decorationThickness: 2.0,
+        color: const Color(0x00000000),
+        letterSpacing: 4.0,
+      ),
+      taskUncheckedStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 14,
+        color: const Color(0xFF777777),
+      ),
+      taskCheckedStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 14,
+        color: const Color(0xFF81C784),
+        fontWeight: FontWeight.bold,
+      ),
+      blockquoteMarkerStyle: base.copyWith(
+        color: const Color(0xFF64B5F6),
+        fontWeight: FontWeight.bold,
+      ),
       syntaxDelimiterStyle: base.copyWith(
         color: const Color(0xFF666666),
       ),
@@ -172,6 +232,10 @@ class MarkdownEditorTheme {
     TextStyle? linkStyle,
     TextStyle? codeBlockStyle,
     TextStyle? blockquoteStyle,
+    TextStyle? thematicBreakStyle,
+    TextStyle? taskUncheckedStyle,
+    TextStyle? taskCheckedStyle,
+    TextStyle? blockquoteMarkerStyle,
     TextStyle? syntaxDelimiterStyle,
     TextStyle? hiddenSyntaxStyle,
     Color? cursorColor,
@@ -189,6 +253,10 @@ class MarkdownEditorTheme {
       linkStyle: linkStyle ?? this.linkStyle,
       codeBlockStyle: codeBlockStyle ?? this.codeBlockStyle,
       blockquoteStyle: blockquoteStyle ?? this.blockquoteStyle,
+      thematicBreakStyle: thematicBreakStyle ?? this.thematicBreakStyle,
+      taskUncheckedStyle: taskUncheckedStyle ?? this.taskUncheckedStyle,
+      taskCheckedStyle: taskCheckedStyle ?? this.taskCheckedStyle,
+      blockquoteMarkerStyle: blockquoteMarkerStyle ?? this.blockquoteMarkerStyle,
       syntaxDelimiterStyle: syntaxDelimiterStyle ?? this.syntaxDelimiterStyle,
       hiddenSyntaxStyle: hiddenSyntaxStyle ?? this.hiddenSyntaxStyle,
       cursorColor: cursorColor ?? this.cursorColor,

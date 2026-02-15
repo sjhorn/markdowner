@@ -121,6 +121,53 @@ class MarkdownEditingController extends TextEditingController {
     return result;
   }
 
+  // ---------------------------------------------------------------------------
+  // Toggle task checkbox
+  // ---------------------------------------------------------------------------
+
+  /// Toggle the task checkbox at [blockIndex] between `[ ]` and `[x]`.
+  ///
+  /// No-op if the block is not a task list item or the index is out of range.
+  void toggleTaskCheckbox(int blockIndex) {
+    if (blockIndex < 0 || blockIndex >= _document.blocks.length) return;
+    final block = _document.blocks[blockIndex];
+
+    bool isTask;
+    bool? taskChecked;
+    int blockStart;
+
+    if (block is UnorderedListItemBlock) {
+      isTask = block.isTask;
+      taskChecked = block.taskChecked;
+      blockStart = block.sourceStart;
+    } else if (block is OrderedListItemBlock) {
+      isTask = block.isTask;
+      taskChecked = block.taskChecked;
+      blockStart = block.sourceStart;
+    } else {
+      return;
+    }
+
+    if (!isTask || taskChecked == null) return;
+
+    // Find the checkbox in the source text.
+    final src = block.sourceText;
+    final checkboxIndex = src.indexOf(taskChecked ? '[x]' : '[ ]');
+    if (checkboxIndex < 0) return;
+
+    final absIndex = blockStart + checkboxIndex;
+    final replacement = taskChecked ? '[ ]' : '[x]';
+
+    final newText = text.substring(0, absIndex) +
+        replacement +
+        text.substring(absIndex + 3);
+
+    value = TextEditingValue(
+      text: newText,
+      selection: selection,
+    );
+  }
+
   @override
   set value(TextEditingValue newValue) {
     final textChanged = newValue.text != text;
