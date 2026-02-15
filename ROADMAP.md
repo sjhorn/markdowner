@@ -1805,12 +1805,12 @@ enum ImageInsertSource {
 **Goal:** Production-ready polish, optional extensions, toolbar, accessibility.
 
 **Toolbar:**
-- [ ] `MarkdownToolbar` default widget with configurable buttons
-- [ ] Toolbar items: bold, italic, strikethrough, code, heading dropdown, list toggles, link, image, code block, table, thematic break
-- [ ] Toolbar button state reflects cursor context (`activeInlineFormats`, `activeBlockType`)
-- [ ] Mobile-friendly toolbar (compact, scrollable)
+- [x] `MarkdownToolbar` default widget with configurable buttons
+- [x] Toolbar items: bold, italic, strikethrough, code, heading dropdown, list toggles, link, image, code block, table, thematic break
+- [x] Toolbar button state reflects cursor context (`activeInlineFormats`, `activeBlockType`)
+- [x] Mobile-friendly toolbar (compact, scrollable)
 - [ ] Desktop-friendly toolbar (full-width, icon + text)
-- [ ] `toolbarBuilder` callback for fully custom toolbars
+- [x] `toolbarBuilder` callback for fully custom toolbars
 
 **Optional Extensions (Grammar Additions):**
 - [ ] Math: inline `$expr$` and block `$$expr$$` — render via `flutter_math_fork`

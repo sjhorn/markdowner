@@ -5,6 +5,7 @@ import '../core/markdown_nodes.dart';
 import '../parsing/markdown_parser.dart';
 import '../rendering/markdown_render_engine.dart';
 import '../theme/markdown_editor_theme.dart';
+import '../toolbar/markdown_toolbar.dart';
 
 /// A [TextEditingController] that parses its text as markdown and builds
 /// styled [TextSpan] trees with the reveal/hide WYSIWYG mechanic.
@@ -41,6 +42,83 @@ class MarkdownEditingController extends TextEditingController {
     final offset = selection.baseOffset;
     if (offset < 0) return -1;
     return _document.blockIndexAtOffset(offset);
+  }
+
+  /// Returns the [BlockType] of the block at the cursor position.
+  BlockType get activeBlockType {
+    final idx = activeBlockIndex;
+    if (idx < 0 || idx >= _document.blocks.length) return BlockType.paragraph;
+    final block = _document.blocks[idx];
+    return switch (block) {
+      HeadingBlock() => BlockType.heading,
+      SetextHeadingBlock() => BlockType.heading,
+      ParagraphBlock() => BlockType.paragraph,
+      UnorderedListItemBlock() => BlockType.unorderedList,
+      OrderedListItemBlock() => BlockType.orderedList,
+      BlockquoteBlock() => BlockType.blockquote,
+      FencedCodeBlock() => BlockType.codeBlock,
+      ThematicBreakBlock() => BlockType.thematicBreak,
+      TableBlock() => BlockType.table,
+      BlankLineBlock() => BlockType.blank,
+    };
+  }
+
+  /// Heading level at the cursor (1–6), or 0 if not a heading.
+  int get activeHeadingLevel {
+    final idx = activeBlockIndex;
+    if (idx < 0 || idx >= _document.blocks.length) return 0;
+    final block = _document.blocks[idx];
+    if (block is HeadingBlock) return block.level;
+    if (block is SetextHeadingBlock) return block.level;
+    return 0;
+  }
+
+  /// Returns the set of inline format types active at the cursor position.
+  ///
+  /// Walks the inline children of the active block to see if the cursor
+  /// offset falls within any formatted inline node.
+  Set<InlineFormatType> get activeInlineFormats {
+    final idx = activeBlockIndex;
+    if (idx < 0 || idx >= _document.blocks.length) return const {};
+    final block = _document.blocks[idx];
+    final offset = selection.baseOffset;
+    return _collectInlineFormats(block.children, offset);
+  }
+
+  Set<InlineFormatType> _collectInlineFormats(
+    List<MarkdownInline> inlines,
+    int offset,
+  ) {
+    final result = <InlineFormatType>{};
+    for (final inline in inlines) {
+      if (offset >= inline.sourceStart && offset < inline.sourceStop) {
+        switch (inline) {
+          case BoldInline():
+            result.add(InlineFormatType.bold);
+            result.addAll(_collectInlineFormats(inline.children, offset));
+          case ItalicInline():
+            result.add(InlineFormatType.italic);
+            result.addAll(_collectInlineFormats(inline.children, offset));
+          case BoldItalicInline():
+            result.add(InlineFormatType.bold);
+            result.add(InlineFormatType.italic);
+            result.addAll(_collectInlineFormats(inline.children, offset));
+          case InlineCodeInline():
+            result.add(InlineFormatType.inlineCode);
+          case StrikethroughInline():
+            result.add(InlineFormatType.strikethrough);
+            result.addAll(_collectInlineFormats(inline.children, offset));
+          case LinkInline():
+            result.add(InlineFormatType.link);
+          case PlainTextInline():
+          case EscapedCharInline():
+          case ImageInline():
+          case AutolinkInline():
+            break;
+        }
+      }
+    }
+    return result;
   }
 
   @override

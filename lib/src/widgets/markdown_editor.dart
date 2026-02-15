@@ -24,6 +24,16 @@ class MarkdownEditor extends StatefulWidget {
   /// Called when the user triggers a save action (Cmd+S).
   final ValueChanged<String>? onSaved;
 
+  /// Optional builder for a toolbar widget rendered above the editor.
+  ///
+  /// The builder receives the controller and editor key so toolbar buttons
+  /// can read active state and perform formatting actions.
+  final Widget Function(
+    BuildContext context,
+    MarkdownEditingController controller,
+    GlobalKey<MarkdownEditorState> editorKey,
+  )? toolbarBuilder;
+
   /// Focus node. If not provided, the widget creates and manages its own.
   final FocusNode? focusNode;
 
@@ -45,6 +55,7 @@ class MarkdownEditor extends StatefulWidget {
     this.controller,
     this.onChanged,
     this.onSaved,
+    this.toolbarBuilder,
     this.focusNode,
     this.theme,
     this.readOnly = false,
@@ -464,7 +475,7 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   @override
   Widget build(BuildContext context) {
     final theme = widget.theme ?? MarkdownEditorTheme.light();
-    return Container(
+    Widget editor = Container(
       color: theme.backgroundColor,
       padding: widget.padding,
       child: Shortcuts(
@@ -505,6 +516,18 @@ class MarkdownEditorState extends State<MarkdownEditor> {
         ),
       ),
     );
+
+    if (widget.toolbarBuilder != null) {
+      final editorKey = widget.key as GlobalKey<MarkdownEditorState>;
+      editor = Column(
+        children: [
+          widget.toolbarBuilder!(context, _controller, editorKey),
+          Expanded(child: SingleChildScrollView(child: editor)),
+        ],
+      );
+    }
+
+    return editor;
   }
 }
 

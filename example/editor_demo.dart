@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:markdowner/src/editor/markdown_editing_controller.dart';
 import 'package:markdowner/src/theme/markdown_editor_theme.dart';
+import 'package:markdowner/src/toolbar/markdown_toolbar.dart';
 import 'package:markdowner/src/widgets/markdown_editor.dart';
 
 void main() {
@@ -102,98 +103,6 @@ That was a thematic break above. Happy editing!
     super.dispose();
   }
 
-  Widget _buildUndoSplitButton() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.undo),
-          tooltip: 'Undo (Cmd+Z)',
-          onPressed: () {
-            _editorKey.currentState
-                ?.performToolbarAction((s) => s.undo());
-            setState(() {});
-          },
-        ),
-        PopupMenuButton<int>(
-          tooltip: 'Undo history',
-          offset: const Offset(0, kToolbarHeight),
-          onSelected: (index) {
-            _editorKey.currentState
-                ?.performToolbarAction((s) => s.undoSteps(index + 1));
-            setState(() {});
-          },
-          itemBuilder: (context) {
-            final names = _editorKey.currentState?.undoNames ?? [];
-            if (names.isEmpty) {
-              return [
-                const PopupMenuItem<int>(
-                  enabled: false,
-                  child: Text('No undo history'),
-                ),
-              ];
-            }
-            return [
-              for (var i = 0; i < names.length; i++)
-                PopupMenuItem<int>(
-                  value: i,
-                  child: Text(names[i]),
-                ),
-            ];
-          },
-          padding: EdgeInsets.zero,
-          child: const Icon(Icons.arrow_drop_down, size: 18),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRedoSplitButton() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.redo),
-          tooltip: 'Redo (Cmd+Shift+Z)',
-          onPressed: () {
-            _editorKey.currentState
-                ?.performToolbarAction((s) => s.redo());
-            setState(() {});
-          },
-        ),
-        PopupMenuButton<int>(
-          tooltip: 'Redo history',
-          offset: const Offset(0, kToolbarHeight),
-          onSelected: (index) {
-            _editorKey.currentState
-                ?.performToolbarAction((s) => s.redoSteps(index + 1));
-            setState(() {});
-          },
-          itemBuilder: (context) {
-            final names = _editorKey.currentState?.redoNames ?? [];
-            if (names.isEmpty) {
-              return [
-                const PopupMenuItem<int>(
-                  enabled: false,
-                  child: Text('No redo history'),
-                ),
-              ];
-            }
-            return [
-              for (var i = 0; i < names.length; i++)
-                PopupMenuItem<int>(
-                  value: i,
-                  child: Text(names[i]),
-                ),
-            ];
-          },
-          padding: EdgeInsets.zero,
-          child: const Icon(Icons.arrow_drop_down, size: 18),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -206,64 +115,31 @@ That was a thematic break above. Happy editing!
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.format_bold),
-            tooltip: 'Bold (Cmd+B)',
-            onPressed: () => _editorKey.currentState
-                ?.performToolbarAction((s) => s.toggleBold()),
-          ),
-          IconButton(
-            icon: const Icon(Icons.format_italic),
-            tooltip: 'Italic (Cmd+I)',
-            onPressed: () => _editorKey.currentState
-                ?.performToolbarAction((s) => s.toggleItalic()),
-          ),
-          IconButton(
-            icon: const Icon(Icons.code),
-            tooltip: 'Inline code (Cmd+`)',
-            onPressed: () => _editorKey.currentState
-                ?.performToolbarAction((s) => s.toggleInlineCode()),
-          ),
-          IconButton(
-            icon: const Icon(Icons.strikethrough_s),
-            tooltip: 'Strikethrough (Cmd+Shift+K)',
-            onPressed: () => _editorKey.currentState
-                ?.performToolbarAction((s) => s.toggleStrikethrough()),
-          ),
-          const VerticalDivider(width: 1),
-          PopupMenuButton<int>(
-            icon: const Icon(Icons.title),
-            tooltip: 'Heading level',
-            offset: const Offset(0, kToolbarHeight),
-            onSelected: (level) {
-              _editorKey.currentState
-                  ?.performToolbarAction((s) => s.setHeadingLevel(level));
-            },
-            itemBuilder: (context) => [
-              for (var i = 1; i <= 6; i++)
-                PopupMenuItem<int>(
-                  value: i,
-                  child: Text('H$i'),
-                ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<int>(
-                value: 0,
-                child: Text('Normal'),
-              ),
-            ],
-          ),
-          const VerticalDivider(width: 1),
-          _buildUndoSplitButton(),
-          _buildRedoSplitButton(),
           // Push past the debug ribbon.
           Container(width: 40),
         ],
       ),
-      body: MarkdownEditor(
-        key: _editorKey,
-        controller: _controller,
-        autofocus: true,
-        padding: const EdgeInsets.all(24),
+      body: Column(
+        children: [
+          Material(
+            elevation: 1,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: MarkdownToolbar(
+                controller: _controller,
+                editorKey: _editorKey,
+              ),
+            ),
+          ),
+          Expanded(
+            child: MarkdownEditor(
+              key: _editorKey,
+              controller: _controller,
+              autofocus: true,
+              padding: const EdgeInsets.all(24),
+            ),
+          ),
+        ],
       ),
     );
   }
