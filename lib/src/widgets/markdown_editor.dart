@@ -330,6 +330,7 @@ class MarkdownEditorState extends State<MarkdownEditor> {
               autofocus: widget.autofocus,
               maxLines: null,
               keyboardType: TextInputType.multiline,
+              inputFormatters: [_SmartEditFormatter(_controller)],
             ),
           ),
         ),
@@ -350,6 +351,48 @@ class _TextSelectionDelegate
 
   @override
   bool get selectionEnabled => true;
+}
+
+// ---------------------------------------------------------------------------
+// Smart Edit Formatter
+// ---------------------------------------------------------------------------
+
+/// A [TextInputFormatter] that intercepts Enter and Backspace to apply
+/// smart list/blockquote/heading behaviour via the controller.
+class _SmartEditFormatter extends TextInputFormatter {
+  final MarkdownEditingController _controller;
+
+  _SmartEditFormatter(this._controller);
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final oldLen = oldValue.text.length;
+    final newLen = newValue.text.length;
+
+    // Detect Enter: exactly one character added and it's a newline.
+    if (newLen == oldLen + 1) {
+      final insertPos = newValue.selection.baseOffset - 1;
+      if (insertPos >= 0 &&
+          insertPos < newLen &&
+          newValue.text[insertPos] == '\n') {
+        final result = _controller.applySmartEnter(oldValue, newValue);
+        if (result != null) return result;
+      }
+    }
+
+    // Detect Backspace: exactly one character removed.
+    if (newLen == oldLen - 1 &&
+        oldValue.selection.isCollapsed &&
+        newValue.selection.isCollapsed) {
+      final result = _controller.applySmartBackspace(oldValue, newValue);
+      if (result != null) return result;
+    }
+
+    return newValue;
+  }
 }
 
 // ---------------------------------------------------------------------------
