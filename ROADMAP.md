@@ -1669,11 +1669,11 @@ enum ImageInsertSource {
 
 **Deferred to Phase 4 (WidgetSpan rendering):**
 - [ ] Code block syntax highlighting with language detection from info string
-- [ ] Task lists: interactive checkbox `WidgetSpan`
+- [x] Task lists: interactive `toggleTaskCheckbox()` (TextSpan-based, not WidgetSpan — WidgetSpan breaks text-offset invariant)
 - [ ] Tables: `Table` widget via `WidgetSpan`
 - [ ] Images: `Image.network` / `Image.file` via `WidgetSpan`
-- [ ] Thematic breaks: `Divider` via `WidgetSpan`
-- [ ] Blockquotes: left-border via `WidgetSpan`
+- [x] Thematic breaks: enhanced collapsed styling (TextSpan-based — WidgetSpan breaks text-offset invariant)
+- [x] Blockquotes: distinct marker style in collapsed mode (TextSpan-based)
 
 **Testing:**
 - [ ] CommonMark spec test suite integration (parse each spec example, verify output)
@@ -1796,13 +1796,38 @@ enum ImageInsertSource {
 - [x] Typing `# Hello` + Enter creates a heading and a new paragraph (via Phase 3b smart Enter)
 - [x] Typing `- item 1` + Enter creates a second list item (via Phase 3b)
 - [x] Pressing Enter on an empty `- ` exits the list (via Phase 3b)
-- [ ] Pasting HTML from a web page produces clean markdown — deferred to Phase 4
+- [x] Pasting HTML from a web page produces clean markdown — implemented in Phase 4c (`HtmlToMarkdownConverter`)
 
 ---
 
 ### Phase 4: Toolbar, Extensions & Polish
 
 **Goal:** Production-ready polish, optional extensions, toolbar, accessibility.
+
+#### Phase 4a: Reusable Toolbar Widget — ✅ COMPLETE
+- `MarkdownToolbar` widget with configurable buttons and active state reflection
+- `activeInlineFormats`, `activeBlockType`, `activeHeadingLevel` getters on controller
+- `toolbarBuilder` callback on `MarkdownEditor` for custom toolbar placement
+- 39 new tests (28 getter + 11 widget), 580 total passing
+
+#### Phase 4b: Enhanced Collapsed Rendering — ✅ COMPLETE
+- Enhanced TextSpan styling for thematic breaks, blockquotes, task checkboxes in collapsed mode
+- `toggleTaskCheckbox(int blockIndex)` on controller for interactive task list editing
+- Theme additions: `thematicBreakStyle`, `taskCheckedStyle`, `taskUncheckedStyle`, `blockquoteMarkerStyle`
+- Note: WidgetSpan deferred — breaks EditableText text-offset invariant
+- 17 new tests, 597 total passing
+
+#### Phase 4c: HTML Export & Conversion — ✅ COMPLETE
+- `MarkdownToHtmlConverter` — walks AST, generates HTML with list grouping
+- `HtmlToMarkdownConverter` — parses HTML DOM, produces markdown (uses `package:html`)
+- `toHtml()` method on controller
+- 59 new tests (28 md→html + 31 html→md), 656 total passing
+
+#### Phase 4d: Performance Optimization — ✅ COMPLETE
+- `IncrementalParseEngine` with `detectChangedBlocks()` for span cache invalidation
+- Span caching in `MarkdownRenderEngine` keyed by `(sourceText, revealed)` with LRU eviction
+- Benchmarks: 5K lines in ~23ms, span cache ~60x warm speedup, buildTextSpan ~731us
+- 19 new tests (14 parser + 5 benchmark), 675 total passing
 
 **Toolbar:**
 - [x] `MarkdownToolbar` default widget with configurable buttons
