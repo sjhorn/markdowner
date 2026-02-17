@@ -377,3 +377,35 @@ class AutolinkInline extends MarkdownInline {
 
   AutolinkInline({required this.url, required super.sourceToken});
 }
+
+// ─── Inline Nodes (Phase 4e Extensions) ───
+
+/// Highlighted text: `==highlighted==`.
+class HighlightInline extends MarkdownInline {
+  final List<MarkdownInline> children;
+
+  HighlightInline({required this.children, required super.sourceToken});
+
+  int get contentStart => sourceStart + 2;
+  int get contentStop => sourceStop - 2;
+}
+
+/// Subscript text: `~subscript~`.
+class SubscriptInline extends MarkdownInline {
+  final List<MarkdownInline> children;
+
+  SubscriptInline({required this.children, required super.sourceToken});
+
+  int get contentStart => sourceStart + 1;
+  int get contentStop => sourceStop - 1;
+}
+
+/// Superscript text: `^superscript^`.
+class SuperscriptInline extends MarkdownInline {
+  final List<MarkdownInline> children;
+
+  SuperscriptInline({required this.children, required super.sourceToken});
+
+  int get contentStart => sourceStart + 1;
+  int get contentStop => sourceStop - 1;
+}

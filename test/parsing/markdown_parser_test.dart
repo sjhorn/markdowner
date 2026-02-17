@@ -713,4 +713,87 @@ void main() {
       expect(plain2.sourceStop, 10);
     });
   });
+
+  group('highlight', () {
+    test('parses ==highlighted== into HighlightInline', () {
+      final doc = parse('==highlighted==\n');
+      final para = doc.blocks[0] as ParagraphBlock;
+      expect(para.children, hasLength(1));
+      final hl = para.children[0] as HighlightInline;
+      expect(hl.children, hasLength(1));
+      final content = hl.children[0] as PlainTextInline;
+      expect(content.text, 'highlighted');
+      expect(hl.contentStart, 2);
+      expect(hl.contentStop, 13);
+    });
+
+    test('roundtrip preserves source', () {
+      const src = '==highlighted==\n';
+      final doc = parse(src);
+      expect(doc.toMarkdown(), src);
+    });
+  });
+
+  group('subscript', () {
+    test('parses ~sub~ into SubscriptInline', () {
+      final doc = parse('~sub~\n');
+      final para = doc.blocks[0] as ParagraphBlock;
+      expect(para.children, hasLength(1));
+      final sub = para.children[0] as SubscriptInline;
+      expect(sub.children, hasLength(1));
+      final content = sub.children[0] as PlainTextInline;
+      expect(content.text, 'sub');
+      expect(sub.contentStart, 1);
+      expect(sub.contentStop, 4);
+    });
+
+    test('roundtrip preserves source', () {
+      const src = '~sub~\n';
+      final doc = parse(src);
+      expect(doc.toMarkdown(), src);
+    });
+
+    test('~~strike~~ still produces StrikethroughInline', () {
+      final doc = parse('~~strike~~\n');
+      final para = doc.blocks[0] as ParagraphBlock;
+      expect(para.children, hasLength(1));
+      expect(para.children[0], isA<StrikethroughInline>());
+    });
+  });
+
+  group('superscript', () {
+    test('parses ^sup^ into SuperscriptInline', () {
+      final doc = parse('^sup^\n');
+      final para = doc.blocks[0] as ParagraphBlock;
+      expect(para.children, hasLength(1));
+      final sup = para.children[0] as SuperscriptInline;
+      expect(sup.children, hasLength(1));
+      final content = sup.children[0] as PlainTextInline;
+      expect(content.text, 'sup');
+      expect(sup.contentStart, 1);
+      expect(sup.contentStop, 4);
+    });
+
+    test('roundtrip preserves source', () {
+      const src = '^sup^\n';
+      final doc = parse(src);
+      expect(doc.toMarkdown(), src);
+    });
+  });
+
+  group('mixed inline extensions', () {
+    test('bold + highlight + subscript + superscript', () {
+      const src = '**bold** and ==highlight== and ~sub~ and ^sup^\n';
+      final doc = parse(src);
+      final para = doc.blocks[0] as ParagraphBlock;
+      // Should parse all correctly
+      expect(doc.toMarkdown(), src);
+      // Check types
+      final types = para.children.map((c) => c.runtimeType).toList();
+      expect(types, contains(BoldInline));
+      expect(types, contains(HighlightInline));
+      expect(types, contains(SubscriptInline));
+      expect(types, contains(SuperscriptInline));
+    });
+  });
 }

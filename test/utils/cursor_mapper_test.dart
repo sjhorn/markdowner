@@ -218,4 +218,30 @@ void main() {
       expect(CursorMapper.snapToContent(0, doc.blocks[0]), equals(1));
     });
   });
+
+  group('extension delimiter ranges', () {
+    test('highlight has delimiter ranges for ==', () {
+      final doc = parse('==text==\n');
+      final ranges = CursorMapper.delimiterRanges(doc.blocks[0]);
+      // == at 0..2 and == at 6..8
+      expect(ranges, contains((0, 2)));
+      expect(ranges, contains((6, 8)));
+    });
+
+    test('subscript has delimiter ranges for ~', () {
+      final doc = parse('~sub~\n');
+      final ranges = CursorMapper.delimiterRanges(doc.blocks[0]);
+      // ~ at 0..1 and ~ at 4..5
+      expect(ranges, contains((0, 1)));
+      expect(ranges, contains((4, 5)));
+    });
+
+    test('superscript has delimiter ranges for ^', () {
+      final doc = parse('^sup^\n');
+      final ranges = CursorMapper.delimiterRanges(doc.blocks[0]);
+      // ^ at 0..1 and ^ at 4..5
+      expect(ranges, contains((0, 1)));
+      expect(ranges, contains((4, 5)));
+    });
+  });
 }

@@ -1,5 +1,7 @@
 import 'package:petitparser/petitparser.dart';
 
+import '../core/markdown_extension.dart';
+
 /// Pure grammar definition for the Phase 1 markdown subset.
 ///
 /// Defines syntax structure only — no AST construction.
@@ -9,7 +11,14 @@ import 'package:petitparser/petitparser.dart';
 /// - Blocks: paragraphs, ATX headings (#–######), blank lines, thematic breaks
 /// - Inlines: plain text, **bold**, *italic*, ***bold-italic***, `inline code`,
 ///   ~~strikethrough~~, escaped chars
+/// - Extensions: ==highlight==, ~subscript~, ^superscript^
 class MarkdownGrammarDefinition extends GrammarDefinition {
+  /// Which optional extensions are enabled. Defaults to all.
+  final Set<MarkdownExtension> enabledExtensions;
+
+  MarkdownGrammarDefinition({
+    Set<MarkdownExtension>? enabledExtensions,
+  }) : enabledExtensions = enabledExtensions ?? MarkdownExtension.values.toSet();
   @override
   Parser start() => ref0(document).end();
 
@@ -140,10 +149,13 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       ref0(bold) |
       ref0(italic) |
       ref0(strikethrough) |
+      ref0(subscript) |
       ref0(inlineCode) |
+      ref0(highlight) |
       ref0(image) |
       ref0(link) |
       ref0(autolink) |
+      ref0(superscript) |
       ref0(plainText) |
       ref0(fallbackChar);
 
@@ -173,6 +185,36 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       string('~~') &
       noneOf('\n').plusLazy(string('~~')).flatten() &
       string('~~');
+
+  /// Highlight: `==content==`. Content is flat text.
+  /// Only active when [MarkdownExtension.highlight] is enabled.
+  Parser highlight() {
+    if (!enabledExtensions.contains(MarkdownExtension.highlight)) {
+      return failure(message: 'highlight extension disabled');
+    }
+    return string('==') &
+        noneOf('\n').plusLazy(string('==')).flatten() &
+        string('==');
+  }
+
+  /// Subscript: `~content~`. Content excludes `~` and newline.
+  /// Safe because `~~` (strikethrough) is tried first in [inline()].
+  /// Only active when [MarkdownExtension.subscript] is enabled.
+  Parser subscript() {
+    if (!enabledExtensions.contains(MarkdownExtension.subscript)) {
+      return failure(message: 'subscript extension disabled');
+    }
+    return char('~') & noneOf('~\n').plusString() & char('~');
+  }
+
+  /// Superscript: `^content^`. Content excludes `^` and newline.
+  /// Only active when [MarkdownExtension.superscript] is enabled.
+  Parser superscript() {
+    if (!enabledExtensions.contains(MarkdownExtension.superscript)) {
+      return failure(message: 'superscript extension disabled');
+    }
+    return char('^') & noneOf('^\n').plusString() & char('^');
+  }
 
   /// Inline code: `` `code` `` or ``` ``code`` ```.
   /// Double-backtick variant allows single backticks inside.
@@ -250,10 +292,12 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       char('.') |
       char('!') |
       char('|') |
-      char('~');
+      char('~') |
+      char('=') |
+      char('^');
 
   /// A run of non-special, non-newline characters.
-  Parser plainText() => noneOf('*_`~\\[!<\n').plusString();
+  Parser plainText() => noneOf('*_`~=^\\[!<\n').plusString();
 
   /// Fallback: any single non-newline character that didn't start a construct.
   Parser fallbackChar() => noneOf('\n');

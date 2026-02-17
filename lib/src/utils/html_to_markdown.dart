@@ -69,6 +69,21 @@ class HtmlToMarkdownConverter {
         _convertInlineChildren(element.nodes, buffer);
         buffer.write('~~');
 
+      case 'mark':
+        buffer.write('==');
+        _convertInlineChildren(element.nodes, buffer);
+        buffer.write('==');
+
+      case 'sub':
+        buffer.write('~');
+        _convertInlineChildren(element.nodes, buffer);
+        buffer.write('~');
+
+      case 'sup':
+        buffer.write('^');
+        _convertInlineChildren(element.nodes, buffer);
+        buffer.write('^');
+
       case 'code':
         // Check if inside a <pre> — handled by parent <pre> case.
         if (element.parent?.localName == 'pre') {

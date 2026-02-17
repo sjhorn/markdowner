@@ -239,5 +239,113 @@ void main() {
         expect(result, isNull);
       });
     });
+
+    group('== highlight pair', () {
+      test('typing second = auto-closes to ==== with cursor between', () {
+        // Simulates: user typed = at position 6 in "Hello=" (so now "Hello==")
+        final oldValue = const TextEditingValue(
+          text: 'Hello=',
+          selection: TextSelection.collapsed(offset: 6),
+        );
+        final newValue = const TextEditingValue(
+          text: 'Hello==',
+          selection: TextSelection.collapsed(offset: 7),
+        );
+
+        final result =
+            controller.applySmartPairCompletion(oldValue, newValue);
+
+        expect(result, isNotNull);
+        expect(result!.text, 'Hello====');
+        expect(result.selection.baseOffset, 7); // cursor between ==
+      });
+
+      test('first = does not trigger auto-close', () {
+        final oldValue = const TextEditingValue(
+          text: 'Hello',
+          selection: TextSelection.collapsed(offset: 5),
+        );
+        final newValue = const TextEditingValue(
+          text: 'Hello=',
+          selection: TextSelection.collapsed(offset: 6),
+        );
+
+        final result =
+            controller.applySmartPairCompletion(oldValue, newValue);
+
+        expect(result, isNull);
+      });
+
+      test('== suppressed inside code block', () {
+        final oldValue = const TextEditingValue(
+          text: '```\nx=',
+          selection: TextSelection.collapsed(offset: 6),
+        );
+        final newValue = const TextEditingValue(
+          text: '```\nx==',
+          selection: TextSelection.collapsed(offset: 7),
+        );
+
+        final result =
+            controller.applySmartPairCompletion(oldValue, newValue);
+
+        expect(result, isNull);
+      });
+    });
+
+    group('^ superscript pair', () {
+      test('typing ^ auto-closes to ^^ with cursor between', () {
+        final oldValue = const TextEditingValue(
+          text: 'x',
+          selection: TextSelection.collapsed(offset: 1),
+        );
+        final newValue = const TextEditingValue(
+          text: 'x^',
+          selection: TextSelection.collapsed(offset: 2),
+        );
+
+        final result =
+            controller.applySmartPairCompletion(oldValue, newValue);
+
+        expect(result, isNotNull);
+        expect(result!.text, 'x^^');
+        expect(result.selection.baseOffset, 2); // cursor between ^
+      });
+
+      test('^ suppressed inside code block', () {
+        final oldValue = const TextEditingValue(
+          text: '```\ncode',
+          selection: TextSelection.collapsed(offset: 8),
+        );
+        final newValue = const TextEditingValue(
+          text: '```\ncode^',
+          selection: TextSelection.collapsed(offset: 9),
+        );
+
+        final result =
+            controller.applySmartPairCompletion(oldValue, newValue);
+
+        expect(result, isNull);
+      });
+    });
+
+    group('~ subscript - no auto-close', () {
+      test('single ~ does not auto-close (avoids ~~ conflict)', () {
+        final oldValue = const TextEditingValue(
+          text: 'H2O',
+          selection: TextSelection.collapsed(offset: 1),
+        );
+        final newValue = const TextEditingValue(
+          text: 'H~2O',
+          selection: TextSelection.collapsed(offset: 2),
+        );
+
+        final result =
+            controller.applySmartPairCompletion(oldValue, newValue);
+
+        // Single ~ should NOT auto-close (that's ~~ strikethrough territory)
+        expect(result, isNull);
+      });
+    });
   });
 }

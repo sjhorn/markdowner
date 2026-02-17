@@ -135,6 +135,33 @@ class CursorMapper {
           ));
           _addInlineDelimiterRanges(inline.children, blockStart, ranges);
 
+        case HighlightInline():
+          final start = inline.sourceStart - blockStart;
+          ranges.add((start, start + 2));
+          ranges.add((
+            inline.sourceStop - blockStart - 2,
+            inline.sourceStop - blockStart,
+          ));
+          _addInlineDelimiterRanges(inline.children, blockStart, ranges);
+
+        case SubscriptInline():
+          final start = inline.sourceStart - blockStart;
+          ranges.add((start, start + 1));
+          ranges.add((
+            inline.sourceStop - blockStart - 1,
+            inline.sourceStop - blockStart,
+          ));
+          _addInlineDelimiterRanges(inline.children, blockStart, ranges);
+
+        case SuperscriptInline():
+          final start = inline.sourceStart - blockStart;
+          ranges.add((start, start + 1));
+          ranges.add((
+            inline.sourceStop - blockStart - 1,
+            inline.sourceStop - blockStart,
+          ));
+          _addInlineDelimiterRanges(inline.children, blockStart, ranges);
+
         case EscapedCharInline():
           // The backslash is the delimiter
           final start = inline.sourceStart - blockStart;

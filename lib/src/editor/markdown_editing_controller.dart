@@ -111,6 +111,15 @@ class MarkdownEditingController extends TextEditingController {
           case StrikethroughInline():
             result.add(InlineFormatType.strikethrough);
             result.addAll(_collectInlineFormats(inline.children, offset));
+          case HighlightInline():
+            result.add(InlineFormatType.highlight);
+            result.addAll(_collectInlineFormats(inline.children, offset));
+          case SubscriptInline():
+            result.add(InlineFormatType.subscript);
+            result.addAll(_collectInlineFormats(inline.children, offset));
+          case SuperscriptInline():
+            result.add(InlineFormatType.superscript);
+            result.addAll(_collectInlineFormats(inline.children, offset));
           case LinkInline():
             result.add(InlineFormatType.link);
           case PlainTextInline():
@@ -203,6 +212,72 @@ class MarkdownEditingController extends TextEditingController {
 
   /// Toggle strikethrough (~~) around the current selection.
   void toggleStrikethrough() => _toggleInlineDelimiter('~~');
+
+  /// Toggle highlight (==) around the current selection.
+  void toggleHighlight() => _toggleInlineDelimiter('==');
+
+  /// Toggle subscript (~) around the current selection.
+  ///
+  /// Uses custom logic to avoid conflict with `~~` strikethrough:
+  /// - When unwrapping, verifies the surrounding `~` chars are single
+  ///   (not part of `~~`).
+  void toggleSubscript() {
+    final sel = selection;
+
+    if (sel.isCollapsed) {
+      final offset = sel.baseOffset;
+      final newText =
+          '${text.substring(0, offset)}~~${text.substring(offset)}';
+      value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: offset + 1),
+      );
+      return;
+    }
+
+    final start = sel.start;
+    final end = sel.end;
+
+    // Check if selection is wrapped with single ~.
+    final hasDelimBefore =
+        start >= 1 && text[start - 1] == '~';
+    final hasDelimAfter =
+        end < text.length && text[end] == '~';
+
+    if (hasDelimBefore && hasDelimAfter) {
+      // Verify it's a single ~ not ~~ (strikethrough).
+      final isDoubleBefore = start >= 2 && text[start - 2] == '~';
+      final isDoubleAfter = end + 1 < text.length && text[end + 1] == '~';
+
+      if (!isDoubleBefore && !isDoubleAfter) {
+        // Safe to unwrap single ~.
+        final newText =
+            '${text.substring(0, start - 1)}${text.substring(start, end)}${text.substring(end + 1)}';
+        value = TextEditingValue(
+          text: newText,
+          selection: TextSelection(
+            baseOffset: start - 1,
+            extentOffset: end - 1,
+          ),
+        );
+        return;
+      }
+    }
+
+    // Wrap with single ~.
+    final newText =
+        '${text.substring(0, start)}~${text.substring(start, end)}~${text.substring(end)}';
+    value = TextEditingValue(
+      text: newText,
+      selection: TextSelection(
+        baseOffset: start + 1,
+        extentOffset: end + 1,
+      ),
+    );
+  }
+
+  /// Toggle superscript (^) around the current selection.
+  void toggleSuperscript() => _toggleInlineDelimiter('^');
 
   void _toggleInlineDelimiter(String delimiter) {
     final sel = selection;
@@ -575,6 +650,29 @@ class MarkdownEditingController extends TextEditingController {
         selection: TextSelection.collapsed(offset: insertPos + 1),
       );
     }
+
+    // Double-delimiter pair: == (highlight)
+    if (char == '=' && insertPos > 0 && newValue.text[insertPos - 1] == '=') {
+      // Just typed ==, auto-close to ====
+      final text = newValue.text;
+      final newText = '${text.substring(0, insertPos + 1)}==${text.substring(insertPos + 1)}';
+      return TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: insertPos + 1),
+      );
+    }
+
+    // Single-delimiter pair: ^ (superscript)
+    if (char == '^') {
+      final text = newValue.text;
+      final newText = '${text.substring(0, insertPos + 1)}^${text.substring(insertPos + 1)}';
+      return TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: insertPos + 1),
+      );
+    }
+
+    // Note: single ~ does NOT auto-close to avoid conflict with ~~ strikethrough.
 
     return null;
   }

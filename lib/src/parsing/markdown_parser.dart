@@ -280,6 +280,60 @@ class MarkdownParserDefinition extends MarkdownGrammarDefinition {
       });
 
   @override
+  Parser highlight() => super.highlight().token().map((token) {
+        final parts = token.value as List;
+        final content = parts[1] as String;
+        final contentToken = Token(
+          content,
+          token.buffer,
+          token.start + 2,
+          token.stop - 2,
+        );
+        return HighlightInline(
+          children: [
+            PlainTextInline(text: content, sourceToken: contentToken),
+          ],
+          sourceToken: token,
+        );
+      });
+
+  @override
+  Parser subscript() => super.subscript().token().map((token) {
+        final parts = token.value as List;
+        final content = parts[1] as String;
+        final contentToken = Token(
+          content,
+          token.buffer,
+          token.start + 1,
+          token.stop - 1,
+        );
+        return SubscriptInline(
+          children: [
+            PlainTextInline(text: content, sourceToken: contentToken),
+          ],
+          sourceToken: token,
+        );
+      });
+
+  @override
+  Parser superscript() => super.superscript().token().map((token) {
+        final parts = token.value as List;
+        final content = parts[1] as String;
+        final contentToken = Token(
+          content,
+          token.buffer,
+          token.start + 1,
+          token.stop - 1,
+        );
+        return SuperscriptInline(
+          children: [
+            PlainTextInline(text: content, sourceToken: contentToken),
+          ],
+          sourceToken: token,
+        );
+      });
+
+  @override
   Parser inlineCode() => super.inlineCode().token().map((token) {
         final parts = token.value as List;
         final delimiter = parts[0] as String;

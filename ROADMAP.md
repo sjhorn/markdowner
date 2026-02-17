@@ -1840,12 +1840,12 @@ enum ImageInsertSource {
 **Optional Extensions (Grammar Additions):**
 - [ ] Math: inline `$expr$` and block `$$expr$$` — render via `flutter_math_fork`
 - [ ] Footnotes: `[^ref]` and `[^ref]: definition` — render as superscript with popup
-- [ ] Highlight: `==text==` — render with background color
+- [x] Highlight: `==text==` — render with background color
 - [ ] Emoji shortcodes: `:smile:` → 😄 — render as Unicode emoji
 - [ ] YAML front matter: `---` delimited block — hidden or collapsible in editor
-- [ ] Subscript `~text~` and superscript `^text^`
+- [x] Subscript `~text~` and superscript `^text^`
 - [ ] Table of contents `[TOC]` — render as a dynamic list of headings
-- [ ] Each extension is a separate PetitParser production, enabled/disabled via `MarkdownEditorConfig.enabledExtensions`
+- [x] Extension config: `MarkdownExtension` enum, enabled/disabled via constructor param on grammar/parser
 
 **Image Handling:**
 - [ ] Drag-and-drop image insertion (desktop + web)

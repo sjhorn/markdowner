@@ -12,6 +12,9 @@ class MarkdownEditorTheme {
   final TextStyle boldItalicStyle;
   final TextStyle inlineCodeStyle;
   final TextStyle strikethroughStyle;
+  final TextStyle highlightStyle;
+  final TextStyle subscriptStyle;
+  final TextStyle superscriptStyle;
   final TextStyle linkStyle;
   final TextStyle codeBlockStyle;
   final TextStyle blockquoteStyle;
@@ -46,6 +49,9 @@ class MarkdownEditorTheme {
     required this.boldItalicStyle,
     required this.inlineCodeStyle,
     required this.strikethroughStyle,
+    required this.highlightStyle,
+    required this.subscriptStyle,
+    required this.superscriptStyle,
     required this.linkStyle,
     required this.codeBlockStyle,
     required this.blockquoteStyle,
@@ -91,6 +97,15 @@ class MarkdownEditorTheme {
       strikethroughStyle: base.copyWith(
         decoration: TextDecoration.lineThrough,
         color: const Color(0xFF888888),
+      ),
+      highlightStyle: base.copyWith(
+        backgroundColor: const Color(0xFFFFEB3B),
+      ),
+      subscriptStyle: base.copyWith(
+        fontSize: 12,
+      ),
+      superscriptStyle: base.copyWith(
+        fontSize: 12,
       ),
       linkStyle: base.copyWith(
         color: const Color(0xFF2196F3),
@@ -172,6 +187,15 @@ class MarkdownEditorTheme {
         decoration: TextDecoration.lineThrough,
         color: const Color(0xFF888888),
       ),
+      highlightStyle: base.copyWith(
+        backgroundColor: const Color(0xFF827717),
+      ),
+      subscriptStyle: base.copyWith(
+        fontSize: 12,
+      ),
+      superscriptStyle: base.copyWith(
+        fontSize: 12,
+      ),
       linkStyle: base.copyWith(
         color: const Color(0xFF64B5F6),
         decoration: TextDecoration.underline,
@@ -229,6 +253,9 @@ class MarkdownEditorTheme {
     TextStyle? boldItalicStyle,
     TextStyle? inlineCodeStyle,
     TextStyle? strikethroughStyle,
+    TextStyle? highlightStyle,
+    TextStyle? subscriptStyle,
+    TextStyle? superscriptStyle,
     TextStyle? linkStyle,
     TextStyle? codeBlockStyle,
     TextStyle? blockquoteStyle,
@@ -250,6 +277,9 @@ class MarkdownEditorTheme {
       boldItalicStyle: boldItalicStyle ?? this.boldItalicStyle,
       inlineCodeStyle: inlineCodeStyle ?? this.inlineCodeStyle,
       strikethroughStyle: strikethroughStyle ?? this.strikethroughStyle,
+      highlightStyle: highlightStyle ?? this.highlightStyle,
+      subscriptStyle: subscriptStyle ?? this.subscriptStyle,
+      superscriptStyle: superscriptStyle ?? this.superscriptStyle,
       linkStyle: linkStyle ?? this.linkStyle,
       codeBlockStyle: codeBlockStyle ?? this.codeBlockStyle,
       blockquoteStyle: blockquoteStyle ?? this.blockquoteStyle,

@@ -199,4 +199,25 @@ Hello **world**.
       });
     });
   });
+
+  group('extensions', () {
+    test('highlight → <mark>', () {
+      expect(toHtml('==highlighted==\n'), '<p><mark>highlighted</mark></p>\n');
+    });
+
+    test('subscript → <sub>', () {
+      expect(toHtml('~sub~\n'), '<p><sub>sub</sub></p>\n');
+    });
+
+    test('superscript → <sup>', () {
+      expect(toHtml('^sup^\n'), '<p><sup>sup</sup></p>\n');
+    });
+
+    test('mixed extensions', () {
+      expect(
+        toHtml('H~2~O and x^2^\n'),
+        '<p>H<sub>2</sub>O and x<sup>2</sup></p>\n',
+      );
+    });
+  });
 }

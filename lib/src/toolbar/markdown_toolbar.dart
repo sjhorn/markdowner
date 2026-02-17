@@ -4,7 +4,16 @@ import '../editor/markdown_editing_controller.dart';
 import '../widgets/markdown_editor.dart';
 
 /// Inline format types that can be active at a cursor position.
-enum InlineFormatType { bold, italic, inlineCode, strikethrough, link }
+enum InlineFormatType {
+  bold,
+  italic,
+  inlineCode,
+  strikethrough,
+  highlight,
+  subscript,
+  superscript,
+  link,
+}
 
 /// Block types for determining the active block at cursor position.
 enum BlockType {
@@ -25,6 +34,9 @@ enum MarkdownToolbarItem {
   italic,
   inlineCode,
   strikethrough,
+  highlight,
+  subscript,
+  superscript,
   heading,
   link,
   codeBlock,
@@ -153,6 +165,33 @@ class MarkdownToolbar extends StatelessWidget {
             onPressed: () =>
                 _performAction((s) => s.toggleStrikethrough()),
           ));
+        case MarkdownToolbarItem.highlight:
+          widgets.add(_ToolbarButton(
+            icon: Icons.highlight,
+            tooltip: 'Highlight',
+            isActive:
+                inlineFormats.contains(InlineFormatType.highlight),
+            onPressed: () =>
+                _performAction((s) => s.toggleHighlight()),
+          ));
+        case MarkdownToolbarItem.subscript:
+          widgets.add(_ToolbarButton(
+            icon: Icons.subscript,
+            tooltip: 'Subscript',
+            isActive:
+                inlineFormats.contains(InlineFormatType.subscript),
+            onPressed: () =>
+                _performAction((s) => s.toggleSubscript()),
+          ));
+        case MarkdownToolbarItem.superscript:
+          widgets.add(_ToolbarButton(
+            icon: Icons.superscript,
+            tooltip: 'Superscript',
+            isActive:
+                inlineFormats.contains(InlineFormatType.superscript),
+            onPressed: () =>
+                _performAction((s) => s.toggleSuperscript()),
+          ));
         case MarkdownToolbarItem.heading:
           widgets.add(_HeadingDropdown(
             activeLevel: headingLevel,
@@ -218,6 +257,9 @@ class MarkdownToolbar extends StatelessWidget {
         MarkdownToolbarItem.italic,
         MarkdownToolbarItem.inlineCode,
         MarkdownToolbarItem.strikethrough,
+        MarkdownToolbarItem.highlight,
+        MarkdownToolbarItem.subscript,
+        MarkdownToolbarItem.superscript,
       },
       {MarkdownToolbarItem.heading},
       {MarkdownToolbarItem.link, MarkdownToolbarItem.codeBlock},

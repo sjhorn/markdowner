@@ -54,6 +54,8 @@ You can also use ***bold italic*** together.
 
 Inline `code` looks like this, and ~~strikethrough~~ like this.
 
+Try ==highlighted text== for emphasis, H~2~O for subscript, and x^2^ for superscript.
+
 Escaped characters: \\* \\# \\~
 
 ### Links and Images

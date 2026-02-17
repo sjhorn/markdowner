@@ -233,6 +233,36 @@ class MarkdownRenderEngine {
           revealed: revealed,
         );
 
+      case HighlightInline():
+        return _buildFormattedInline(
+          sourceText: inline.sourceText,
+          delimiterLength: 2,
+          formatStyle: theme.highlightStyle,
+          delimiterStyle: delimiterStyle,
+          children: inline.children,
+          revealed: revealed,
+        );
+
+      case SubscriptInline():
+        return _buildFormattedInline(
+          sourceText: inline.sourceText,
+          delimiterLength: 1,
+          formatStyle: theme.subscriptStyle,
+          delimiterStyle: delimiterStyle,
+          children: inline.children,
+          revealed: revealed,
+        );
+
+      case SuperscriptInline():
+        return _buildFormattedInline(
+          sourceText: inline.sourceText,
+          delimiterLength: 1,
+          formatStyle: theme.superscriptStyle,
+          delimiterStyle: delimiterStyle,
+          children: inline.children,
+          revealed: revealed,
+        );
+
       case EscapedCharInline():
         // Backslash is delimiter, character is content
         return [

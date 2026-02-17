@@ -539,4 +539,118 @@ void main() {
       expect(result, isA<Success>());
     });
   });
+
+  group('highlight', () {
+    test('matches ==text==', () {
+      final parser = buildFrom(grammar.highlight);
+      expect(parser.parse('==highlighted=='), isA<Success>());
+    });
+
+    test('rejects =text= (single equals)', () {
+      final parser = buildFrom(grammar.highlight);
+      expect(parser.parse('=text='), isA<Failure>());
+    });
+
+    test('rejects empty ====', () {
+      final parser = buildFrom(grammar.highlight);
+      expect(parser.parse('===='), isA<Failure>());
+    });
+
+    test('content can include single =', () {
+      final parser = buildFrom(grammar.highlight);
+      expect(parser.parse('==a=b=='), isA<Success>());
+    });
+  });
+
+  group('subscript', () {
+    test('matches ~text~', () {
+      final parser = buildFrom(grammar.subscript);
+      expect(parser.parse('~sub~'), isA<Success>());
+    });
+
+    test('does NOT match ~~text~~ (strikethrough)', () {
+      final parser = buildFrom(grammar.subscript);
+      final result = parser.parse('~~text~~');
+      // subscript only matches single ~, so ~~text~~ should not fully match
+      if (result is Success) {
+        // If it matched, it should not have consumed the whole string
+        expect(result.position, lessThan('~~text~~'.length));
+      }
+    });
+
+    test('rejects content with ~ inside', () {
+      final parser = buildFrom(grammar.subscript);
+      expect(parser.parse('~a~b~'), isA<Success>());
+      final result = parser.parse('~a~b~') as Success;
+      // Should match ~a~ (stops at first ~)
+      expect(result.position, 3);
+    });
+  });
+
+  group('superscript', () {
+    test('matches ^text^', () {
+      final parser = buildFrom(grammar.superscript);
+      expect(parser.parse('^sup^'), isA<Success>());
+    });
+
+    test('rejects empty ^^', () {
+      final parser = buildFrom(grammar.superscript);
+      expect(parser.parse('^^'), isA<Failure>());
+    });
+
+    test('content stops at ^', () {
+      final parser = buildFrom(grammar.superscript);
+      final result = parser.parse('^a^b^') as Success;
+      expect(result.position, 3);
+    });
+  });
+
+  group('extension config', () {
+    test('disabled highlight parses as plain text', () {
+      final disabledGrammar = MarkdownGrammarDefinition(
+        enabledExtensions: {
+          MarkdownExtension.subscript,
+          MarkdownExtension.superscript,
+        },
+      );
+      final parser = disabledGrammar.build();
+      final result = parser.parse('==highlighted==\n');
+      expect(result, isA<Success>());
+      // It should succeed (parsed as plain text), but the highlight
+      // production itself should fail
+      final highlightParser =
+          disabledGrammar.buildFrom(disabledGrammar.highlight());
+      expect(highlightParser.parse('==highlighted=='), isA<Failure>());
+    });
+
+    test('disabled subscript parses as plain text', () {
+      final disabledGrammar = MarkdownGrammarDefinition(
+        enabledExtensions: {
+          MarkdownExtension.highlight,
+          MarkdownExtension.superscript,
+        },
+      );
+      final subscriptParser =
+          disabledGrammar.buildFrom(disabledGrammar.subscript());
+      expect(subscriptParser.parse('~sub~'), isA<Failure>());
+    });
+
+    test('disabled superscript parses as plain text', () {
+      final disabledGrammar = MarkdownGrammarDefinition(
+        enabledExtensions: {
+          MarkdownExtension.highlight,
+          MarkdownExtension.subscript,
+        },
+      );
+      final superscriptParser =
+          disabledGrammar.buildFrom(disabledGrammar.superscript());
+      expect(superscriptParser.parse('^sup^'), isA<Failure>());
+    });
+
+    test('all extensions enabled by default', () {
+      // Default grammar should parse all three
+      final parser = grammar.build();
+      expect(parser.parse('==hi== ~sub~ ^sup^\n'), isA<Success>());
+    });
+  });
 }

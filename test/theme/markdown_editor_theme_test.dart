@@ -109,4 +109,38 @@ void main() {
       expect(copy.headingStyles.length, equals(theme.headingStyles.length));
     });
   });
+
+  group('extension styles', () {
+    test('light theme has highlight, subscript, superscript styles', () {
+      final theme = MarkdownEditorTheme.light();
+      expect(theme.highlightStyle, isNotNull);
+      expect(theme.subscriptStyle, isNotNull);
+      expect(theme.superscriptStyle, isNotNull);
+      // Highlight has background color
+      expect(theme.highlightStyle.backgroundColor, isNotNull);
+      // Sub/superscript have smaller font
+      expect(theme.subscriptStyle.fontSize, lessThan(theme.baseStyle.fontSize!));
+      expect(theme.superscriptStyle.fontSize, lessThan(theme.baseStyle.fontSize!));
+    });
+
+    test('dark theme has highlight, subscript, superscript styles', () {
+      final theme = MarkdownEditorTheme.dark();
+      expect(theme.highlightStyle.backgroundColor, isNotNull);
+      expect(theme.subscriptStyle.fontSize, lessThan(theme.baseStyle.fontSize!));
+      expect(theme.superscriptStyle.fontSize, lessThan(theme.baseStyle.fontSize!));
+    });
+
+    test('copyWith overrides extension styles', () {
+      final theme = MarkdownEditorTheme.light();
+      const customStyle = TextStyle(fontSize: 42);
+      final modified = theme.copyWith(
+        highlightStyle: customStyle,
+        subscriptStyle: customStyle,
+        superscriptStyle: customStyle,
+      );
+      expect(modified.highlightStyle, equals(customStyle));
+      expect(modified.subscriptStyle, equals(customStyle));
+      expect(modified.superscriptStyle, equals(customStyle));
+    });
+  });
 }

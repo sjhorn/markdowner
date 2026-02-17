@@ -166,6 +166,9 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   void toggleItalic() => _controller.toggleItalic();
   void toggleInlineCode() => _controller.toggleInlineCode();
   void toggleStrikethrough() => _controller.toggleStrikethrough();
+  void toggleHighlight() => _controller.toggleHighlight();
+  void toggleSubscript() => _controller.toggleSubscript();
+  void toggleSuperscript() => _controller.toggleSuperscript();
   void setHeadingLevel(int level) => _controller.setHeadingLevel(level);
   void indent() => _controller.indent();
   void outdent() => _controller.outdent();
@@ -368,6 +371,9 @@ class MarkdownEditorState extends State<MarkdownEditor> {
         SingleActivator(LogicalKeyboardKey.keyK,
             shift: true, meta: _isMacOS, control: !_isMacOS):
             const _ToggleStrikethroughIntent(),
+        SingleActivator(LogicalKeyboardKey.keyH,
+            shift: true, meta: _isMacOS, control: !_isMacOS):
+            const _ToggleHighlightIntent(),
         SingleActivator(LogicalKeyboardKey.backquote,
             meta: _isMacOS, control: !_isMacOS):
             const _ToggleInlineCodeIntent(),
@@ -434,6 +440,9 @@ class MarkdownEditorState extends State<MarkdownEditor> {
         _ToggleStrikethroughIntent:
             CallbackAction<_ToggleStrikethroughIntent>(
                 onInvoke: (_) => toggleStrikethrough()),
+        _ToggleHighlightIntent:
+            CallbackAction<_ToggleHighlightIntent>(
+                onInvoke: (_) => toggleHighlight()),
         _SetHeadingLevelIntent: CallbackAction<_SetHeadingLevelIntent>(
             onInvoke: (intent) => setHeadingLevel(intent.level)),
         _UndoIntent:
@@ -692,6 +701,10 @@ class _ToggleInlineCodeIntent extends Intent {
 
 class _ToggleStrikethroughIntent extends Intent {
   const _ToggleStrikethroughIntent();
+}
+
+class _ToggleHighlightIntent extends Intent {
+  const _ToggleHighlightIntent();
 }
 
 class _SetHeadingLevelIntent extends Intent {

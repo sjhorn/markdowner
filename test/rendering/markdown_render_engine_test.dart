@@ -339,4 +339,39 @@ void main() {
       expect(span.style, equals(theme.baseStyle));
     });
   });
+
+  group('highlight', () {
+    test('text invariant', () {
+      const src = '==highlighted==\n';
+      final doc = parse(src);
+      final span = engine.buildRevealedSpan(doc.blocks[0], theme.baseStyle);
+      expect(extractAllText(span), equals(src));
+    });
+
+    test('applies highlight style to content', () {
+      const src = '==highlighted==\n';
+      final doc = parse(src);
+      final span = engine.buildCollapsedSpan(doc.blocks[0], theme.baseStyle);
+      final allText = extractAllText(span);
+      expect(allText, equals(src));
+    });
+  });
+
+  group('subscript', () {
+    test('text invariant', () {
+      const src = '~sub~\n';
+      final doc = parse(src);
+      final span = engine.buildRevealedSpan(doc.blocks[0], theme.baseStyle);
+      expect(extractAllText(span), equals(src));
+    });
+  });
+
+  group('superscript', () {
+    test('text invariant', () {
+      const src = '^sup^\n';
+      final doc = parse(src);
+      final span = engine.buildRevealedSpan(doc.blocks[0], theme.baseStyle);
+      expect(extractAllText(span), equals(src));
+    });
+  });
 }

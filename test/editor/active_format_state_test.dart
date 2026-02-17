@@ -242,5 +242,35 @@ void main() {
       // Code blocks don't have inline children
       expect(controller.activeInlineFormats, isEmpty);
     });
+
+    test('detects highlight at cursor', () {
+      controller.text = '==highlighted==\n';
+      controller.selection = const TextSelection.collapsed(offset: 5);
+
+      expect(
+        controller.activeInlineFormats,
+        contains(InlineFormatType.highlight),
+      );
+    });
+
+    test('detects subscript at cursor', () {
+      controller.text = '~sub~\n';
+      controller.selection = const TextSelection.collapsed(offset: 2);
+
+      expect(
+        controller.activeInlineFormats,
+        contains(InlineFormatType.subscript),
+      );
+    });
+
+    test('detects superscript at cursor', () {
+      controller.text = '^sup^\n';
+      controller.selection = const TextSelection.collapsed(offset: 2);
+
+      expect(
+        controller.activeInlineFormats,
+        contains(InlineFormatType.superscript),
+      );
+    });
   });
 }

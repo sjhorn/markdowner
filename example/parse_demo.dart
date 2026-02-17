@@ -107,6 +107,12 @@ String _describeInline(MarkdownInline inline) {
       'Image("${_escape(inline.alt)}", "${_escape(inline.url)}"'
           '${inline.title != null ? ', "${_escape(inline.title!)}"' : ''})',
     AutolinkInline() => 'Autolink("${_escape(inline.url)}")',
+    HighlightInline() =>
+      'Highlight([${inline.children.map(_describeInline).join(', ')}])',
+    SubscriptInline() =>
+      'Subscript([${inline.children.map(_describeInline).join(', ')}])',
+    SuperscriptInline() =>
+      'Superscript([${inline.children.map(_describeInline).join(', ')}])',
   };
 }
 

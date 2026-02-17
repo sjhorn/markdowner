@@ -198,4 +198,18 @@ void main() {
       });
     });
   });
+
+  group('extensions', () {
+    test('<mark> → ==highlight==', () {
+      expect(toMd('<p><mark>highlighted</mark></p>'), '==highlighted==');
+    });
+
+    test('<sub> → ~subscript~', () {
+      expect(toMd('<p>H<sub>2</sub>O</p>'), 'H~2~O');
+    });
+
+    test('<sup> → ^superscript^', () {
+      expect(toMd('<p>x<sup>2</sup></p>'), 'x^2^');
+    });
+  });
 }

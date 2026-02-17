@@ -409,6 +409,36 @@ void main() {
     });
   });
 
+  group('HighlightInline', () {
+    test('contentStart and contentStop', () {
+      const src = '==highlighted==';
+      final token = _tok(null, src, 0, 15);
+      final hl = HighlightInline(children: [], sourceToken: token);
+      expect(hl.contentStart, 2);
+      expect(hl.contentStop, 13);
+    });
+  });
+
+  group('SubscriptInline', () {
+    test('contentStart and contentStop', () {
+      const src = '~sub~';
+      final token = _tok(null, src, 0, 5);
+      final sub = SubscriptInline(children: [], sourceToken: token);
+      expect(sub.contentStart, 1);
+      expect(sub.contentStop, 4);
+    });
+  });
+
+  group('SuperscriptInline', () {
+    test('contentStart and contentStop', () {
+      const src = '^sup^';
+      final token = _tok(null, src, 0, 5);
+      final sup = SuperscriptInline(children: [], sourceToken: token);
+      expect(sup.contentStart, 1);
+      expect(sup.contentStop, 4);
+    });
+  });
+
   group('sealed class hierarchy', () {
     test('MarkdownBlock subtypes are MarkdownNode', () {
       final token = _tok(null, '\n', 0, 1);

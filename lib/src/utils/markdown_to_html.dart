@@ -174,6 +174,15 @@ class MarkdownToHtmlConverter {
       case StrikethroughInline():
         return '<del>${_convertInlines(inline.children)}</del>';
 
+      case HighlightInline():
+        return '<mark>${_convertInlines(inline.children)}</mark>';
+
+      case SubscriptInline():
+        return '<sub>${_convertInlines(inline.children)}</sub>';
+
+      case SuperscriptInline():
+        return '<sup>${_convertInlines(inline.children)}</sup>';
+
       case LinkInline():
         final titleAttr = inline.title != null ? ' title="${_escapeHtml(inline.title!)}"' : '';
         return '<a href="${_escapeHtml(inline.url)}"$titleAttr>${_escapeHtml(inline.text)}</a>';

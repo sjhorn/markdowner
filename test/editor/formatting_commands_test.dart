@@ -460,4 +460,118 @@ void main() {
       expect(controller.text, 'before\n```\nsome code\n```\nafter\n');
     });
   });
+
+  group('toggleHighlight', () {
+    test('wraps selected text with ==', () {
+      controller.text = 'Hello\n';
+      controller.selection = const TextSelection(baseOffset: 0, extentOffset: 5);
+
+      controller.toggleHighlight();
+
+      expect(controller.text, '==Hello==\n');
+      expect(controller.selection.baseOffset, 2);
+      expect(controller.selection.extentOffset, 7);
+    });
+
+    test('unwraps ==text==', () {
+      controller.text = '==Hello==\n';
+      controller.selection = const TextSelection(baseOffset: 2, extentOffset: 7);
+
+      controller.toggleHighlight();
+
+      expect(controller.text, 'Hello\n');
+      expect(controller.selection.baseOffset, 0);
+      expect(controller.selection.extentOffset, 5);
+    });
+
+    test('collapsed cursor inserts ==== with cursor between', () {
+      controller.text = 'Hello\n';
+      controller.selection = const TextSelection.collapsed(offset: 5);
+
+      controller.toggleHighlight();
+
+      expect(controller.text, 'Hello====\n');
+      expect(controller.selection.baseOffset, 7);
+    });
+  });
+
+  group('toggleSubscript', () {
+    test('wraps selected text with ~', () {
+      controller.text = 'H2O\n';
+      controller.selection = const TextSelection(baseOffset: 1, extentOffset: 2);
+
+      controller.toggleSubscript();
+
+      expect(controller.text, 'H~2~O\n');
+      expect(controller.selection.baseOffset, 2);
+      expect(controller.selection.extentOffset, 3);
+    });
+
+    test('unwraps ~text~', () {
+      controller.text = 'H~2~O\n';
+      controller.selection = const TextSelection(baseOffset: 2, extentOffset: 3);
+
+      controller.toggleSubscript();
+
+      expect(controller.text, 'H2O\n');
+      expect(controller.selection.baseOffset, 1);
+      expect(controller.selection.extentOffset, 2);
+    });
+
+    test('collapsed cursor inserts ~~ with cursor between', () {
+      controller.text = 'text\n';
+      controller.selection = const TextSelection.collapsed(offset: 4);
+
+      controller.toggleSubscript();
+
+      expect(controller.text, 'text~~\n');
+      expect(controller.selection.baseOffset, 5);
+    });
+
+    test('does not unwrap ~~ strikethrough delimiters', () {
+      // Selection inside ~~text~~ should not be unwrapped by subscript toggle
+      controller.text = '~~text~~\n';
+      controller.selection = const TextSelection(baseOffset: 2, extentOffset: 6);
+
+      controller.toggleSubscript();
+
+      // Should wrap with additional ~ (not unwrap the ~~)
+      // The ~ before selection is part of ~~ (double), so unwrap is blocked.
+      expect(controller.text, '~~~text~~~\n');
+    });
+  });
+
+  group('toggleSuperscript', () {
+    test('wraps selected text with ^', () {
+      controller.text = 'x2\n';
+      controller.selection = const TextSelection(baseOffset: 1, extentOffset: 2);
+
+      controller.toggleSuperscript();
+
+      expect(controller.text, 'x^2^\n');
+      expect(controller.selection.baseOffset, 2);
+      expect(controller.selection.extentOffset, 3);
+    });
+
+    test('unwraps ^text^', () {
+      controller.text = 'x^2^\n';
+      controller.selection = const TextSelection(baseOffset: 2, extentOffset: 3);
+
+      controller.toggleSuperscript();
+
+      expect(controller.text, 'x2\n');
+      expect(controller.selection.baseOffset, 1);
+      expect(controller.selection.extentOffset, 2);
+    });
+
+    test('collapsed cursor inserts ^^ with cursor between', () {
+      controller.text = 'x\n';
+      controller.selection = const TextSelection.collapsed(offset: 1);
+
+      controller.toggleSuperscript();
+
+      expect(controller.text, 'x^^\n');
+      expect(controller.selection.baseOffset, 2);
+    });
+  });
 }
