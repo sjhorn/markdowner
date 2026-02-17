@@ -3,6 +3,7 @@
 /// Phase 1 exports: AST model, parser, rendering, controller, and editor widget.
 library;
 
+export 'src/core/image_insert_event.dart';
 export 'src/core/markdown_extension.dart';
 export 'src/core/markdown_nodes.dart';
 export 'src/editor/markdown_editing_controller.dart';

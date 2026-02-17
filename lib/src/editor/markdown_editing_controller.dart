@@ -489,6 +489,62 @@ class MarkdownEditingController extends TextEditingController {
   }
 
   // ---------------------------------------------------------------------------
+  // Insert Image
+  // ---------------------------------------------------------------------------
+
+  /// Insert a markdown image at the cursor position.
+  ///
+  /// - Collapsed cursor: inserts `![](url)` with cursor inside `[]`.
+  /// - With selection: wraps as `![selection](url)` with cursor selecting
+  ///   `url` inside `()`.
+  void insertImage() {
+    final sel = selection;
+
+    if (sel.isCollapsed) {
+      final offset = sel.baseOffset;
+      final newText =
+          '${text.substring(0, offset)}![](url)${text.substring(offset)}';
+      value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: offset + 2),
+      );
+    } else {
+      final start = sel.start;
+      final end = sel.end;
+      final selectedText = text.substring(start, end);
+      final newText =
+          '${text.substring(0, start)}![$selectedText](url)${text.substring(end)}';
+      final urlStart = start + selectedText.length + 4; // ![text](
+      value = TextEditingValue(
+        text: newText,
+        selection: TextSelection(
+          baseOffset: urlStart,
+          extentOffset: urlStart + 3, // select "url"
+        ),
+      );
+    }
+  }
+
+  /// Insert a markdown image with specific alt text and URL.
+  ///
+  /// Inserts `![alt](url)` at the cursor position (replacing any selection).
+  /// Cursor is placed after the closing `)`.
+  void insertImageMarkdown(String alt, String url) {
+    final sel = selection;
+    final start = sel.start;
+    final end = sel.end;
+    final imageMarkdown = '![$alt]($url)';
+    final newText =
+        '${text.substring(0, start)}$imageMarkdown${text.substring(end)}';
+    value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(
+        offset: start + imageMarkdown.length,
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Toggle Code Block
   // ---------------------------------------------------------------------------
 

@@ -45,6 +45,7 @@ enum MarkdownToolbarItem {
   math,
   heading,
   link,
+  image,
   footnote,
   codeBlock,
   indent,
@@ -91,6 +92,7 @@ class MarkdownToolbar extends StatelessWidget {
     MarkdownToolbarItem.math,
     MarkdownToolbarItem.heading,
     MarkdownToolbarItem.link,
+    MarkdownToolbarItem.image,
     MarkdownToolbarItem.footnote,
     MarkdownToolbarItem.codeBlock,
     MarkdownToolbarItem.indent,
@@ -247,6 +249,13 @@ class MarkdownToolbar extends StatelessWidget {
             onPressed: () => _performAction((s) => s.insertLink()),
             showLabel: showLabels,
           ));
+        case MarkdownToolbarItem.image:
+          widgets.add(_ToolbarButton(
+            icon: Icons.image,
+            tooltip: 'Insert image',
+            onPressed: () => _performAction((s) => s.insertImage()),
+            showLabel: showLabels,
+          ));
         case MarkdownToolbarItem.footnote:
           widgets.add(_ToolbarButton(
             icon: Icons.format_list_numbered,
@@ -315,7 +324,7 @@ class MarkdownToolbar extends StatelessWidget {
         MarkdownToolbarItem.math,
       },
       {MarkdownToolbarItem.heading},
-      {MarkdownToolbarItem.link, MarkdownToolbarItem.footnote, MarkdownToolbarItem.codeBlock},
+      {MarkdownToolbarItem.link, MarkdownToolbarItem.image, MarkdownToolbarItem.footnote, MarkdownToolbarItem.codeBlock},
       {MarkdownToolbarItem.indent, MarkdownToolbarItem.outdent},
       {MarkdownToolbarItem.undo, MarkdownToolbarItem.redo},
     ];

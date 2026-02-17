@@ -162,6 +162,18 @@ Happy editing!
               controller: _controller,
               autofocus: true,
               padding: const EdgeInsets.all(24),
+              onImageInsert: (event) async {
+                if (!mounted) return null;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                        'Image insert requested (source: ${event.source.name})'),
+                  ),
+                );
+                // Return a placeholder URL. In a real app, you would
+                // upload the image and return the resulting URL.
+                return 'https://via.placeholder.com/300';
+              },
             ),
           ),
         ],

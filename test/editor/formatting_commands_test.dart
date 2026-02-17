@@ -574,4 +574,93 @@ void main() {
       expect(controller.selection.baseOffset, 2);
     });
   });
+
+  group('insertImage', () {
+    test('inserts image template at collapsed cursor', () {
+      controller.text = 'Hello\n';
+      controller.selection = const TextSelection.collapsed(offset: 5);
+
+      controller.insertImage();
+
+      expect(controller.text, 'Hello![](url)\n');
+      // cursor should be inside the [] (after "![")
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 7));
+    });
+
+    test('wraps selection as image alt text', () {
+      controller.text = 'a photo here\n';
+      controller.selection =
+          const TextSelection(baseOffset: 2, extentOffset: 7);
+
+      controller.insertImage();
+
+      expect(controller.text, 'a ![photo](url) here\n');
+      // cursor should select "url" inside (): ![photo]( at position 11
+      expect(controller.selection,
+          const TextSelection(baseOffset: 11, extentOffset: 14));
+    });
+
+    test('inserts at start of text', () {
+      controller.text = 'Hello\n';
+      controller.selection = const TextSelection.collapsed(offset: 0);
+
+      controller.insertImage();
+
+      expect(controller.text, '![](url)Hello\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 2));
+    });
+
+    test('inserts at end of text', () {
+      controller.text = 'Hello\n';
+      controller.selection = const TextSelection.collapsed(offset: 6);
+
+      controller.insertImage();
+
+      expect(controller.text, 'Hello\n![](url)');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 8));
+    });
+  });
+
+  group('insertImageMarkdown', () {
+    test('inserts image with specific alt and url', () {
+      controller.text = 'Hello\n';
+      controller.selection = const TextSelection.collapsed(offset: 5);
+
+      controller.insertImageMarkdown('photo', 'https://x.com/img.png');
+
+      expect(controller.text,
+          'Hello![photo](https://x.com/img.png)\n');
+      // cursor placed after closing )
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 36));
+    });
+
+    test('inserts at start of text', () {
+      controller.text = 'Hello\n';
+      controller.selection = const TextSelection.collapsed(offset: 0);
+
+      controller.insertImageMarkdown('pic', 'http://example.com/a.jpg');
+
+      expect(controller.text,
+          '![pic](http://example.com/a.jpg)Hello\n');
+      // ![pic](http://example.com/a.jpg) = 32 chars
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 32));
+    });
+
+    test('replaces selection with image markdown', () {
+      controller.text = 'replace this text\n';
+      controller.selection =
+          const TextSelection(baseOffset: 8, extentOffset: 12);
+
+      controller.insertImageMarkdown('alt', 'url');
+
+      expect(controller.text, 'replace ![alt](url) text\n');
+      expect(controller.selection,
+          const TextSelection.collapsed(offset: 19));
+    });
+  });
 }

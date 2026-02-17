@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../core/image_insert_event.dart';
 import '../editor/markdown_editing_controller.dart';
 import '../theme/markdown_editor_theme.dart';
 import '../utils/undo_redo_manager.dart';
@@ -40,6 +41,15 @@ class MarkdownEditor extends StatefulWidget {
   /// Theme for the editor. Falls back to [MarkdownEditorTheme.light()].
   final MarkdownEditorTheme? theme;
 
+  /// Callback when the user requests to insert an image.
+  ///
+  /// The callback receives an [ImageInsertEvent] describing how the insertion
+  /// was triggered and should return the URL to use in the markdown, or `null`
+  /// to cancel. When provided, the toolbar image button will invoke this
+  /// callback with [ImageInsertSource.toolbar], then call
+  /// [MarkdownEditingController.insertImageMarkdown] with the returned URL.
+  final Future<String?> Function(ImageInsertEvent)? onImageInsert;
+
   /// Whether the editor is read-only.
   final bool readOnly;
 
@@ -56,6 +66,7 @@ class MarkdownEditor extends StatefulWidget {
     this.onChanged,
     this.onSaved,
     this.toolbarBuilder,
+    this.onImageInsert,
     this.focusNode,
     this.theme,
     this.readOnly = false,
@@ -173,6 +184,22 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   void indent() => _controller.indent();
   void outdent() => _controller.outdent();
   void insertLink() => _controller.insertLink();
+  void insertImage() {
+    if (widget.onImageInsert != null) {
+      _handleImageInsertCallback();
+    } else {
+      _controller.insertImage();
+    }
+  }
+
+  Future<void> _handleImageInsertCallback() async {
+    final event = const ImageInsertEvent(source: ImageInsertSource.toolbar);
+    final url = await widget.onImageInsert!(event);
+    if (url != null && mounted) {
+      _controller.insertImageMarkdown('', url);
+    }
+  }
+
   void toggleCodeBlock() => _controller.toggleCodeBlock();
   void toggleMath() => _controller.toggleMath();
   void insertFootnote() => _controller.insertFootnote();

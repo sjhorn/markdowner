@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:markdowner/src/core/image_insert_event.dart';
 import 'package:markdowner/src/editor/markdown_editing_controller.dart';
 import 'package:markdowner/src/toolbar/markdown_toolbar.dart';
 import 'package:markdowner/src/widgets/markdown_editor.dart';
@@ -235,6 +236,75 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(controller.text, '```\nsome code\n```\n');
+    });
+
+    testWidgets('image button renders with correct tooltip', (tester) async {
+      await tester.pumpWidget(buildToolbarApp());
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Insert image'), findsOneWidget);
+    });
+
+    testWidgets('image button triggers insertImage on editor', (tester) async {
+      await tester.pumpWidget(buildToolbarApp(
+        initialText: 'Hello\n',
+      ));
+      await tester.pumpAndSettle();
+
+      final state = editorKey.currentState!;
+      state.controller.selection =
+          const TextSelection.collapsed(offset: 5);
+      await tester.pump();
+
+      await tester.tap(find.byTooltip('Insert image'));
+      await tester.pumpAndSettle();
+
+      expect(controller.text, 'Hello![](url)\n');
+    });
+
+    testWidgets('image button triggers onImageInsert callback when set',
+        (tester) async {
+      ImageInsertEvent? receivedEvent;
+      controller = MarkdownEditingController(text: 'Hello\n');
+      editorKey = GlobalKey<MarkdownEditorState>();
+
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              MarkdownToolbar(
+                controller: controller,
+                editorKey: editorKey,
+              ),
+              Expanded(
+                child: MarkdownEditor(
+                  key: editorKey,
+                  controller: controller,
+                  autofocus: true,
+                  onImageInsert: (event) async {
+                    receivedEvent = event;
+                    return 'https://example.com/img.png';
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      final state = editorKey.currentState!;
+      state.controller.selection =
+          const TextSelection.collapsed(offset: 5);
+      await tester.pump();
+
+      await tester.tap(find.byTooltip('Insert image'));
+      await tester.pumpAndSettle();
+
+      expect(receivedEvent, isNotNull);
+      expect(receivedEvent!.source, ImageInsertSource.toolbar);
+      expect(controller.text,
+          'Hello![](https://example.com/img.png)\n');
     });
 
     testWidgets('dividers appear between toolbar groups', (tester) async {

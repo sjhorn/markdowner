@@ -1850,11 +1850,12 @@ enum ImageInsertSource {
 - [x] Context menu: right-click/long-press with Bold, Italic, Code, Strikethrough, Link actions
 
 **Image Handling:**
-- [ ] Drag-and-drop image insertion (desktop + web)
-- [ ] Paste image from clipboard
-- [ ] Image resize handles in rendered mode
-- [ ] Image loading indicators and error states
-- [ ] `onImageInsert` callback for custom upload workflows
+- [x] `onImageInsert` callback for custom upload workflows (drag-drop/paste available via callback at app layer)
+- [x] `insertImage()` and `insertImageMarkdown()` controller methods
+- [x] Toolbar image button (`Icons.image`, tooltip 'Insert image')
+- [x] `ImageInsertEvent` / `ImageInsertSource` model for callback API
+- [ ] Image resize handles in rendered mode — deferred (needs WidgetSpan)
+- [ ] Image loading indicators and error states — deferred (needs WidgetSpan)
 
 **Performance Optimization:**
 - [ ] Lazy span building — only build `TextSpan` for visible blocks (viewport + buffer)
