@@ -63,6 +63,10 @@ class MarkdownEditingController extends TextEditingController {
       ThematicBreakBlock() => BlockType.thematicBreak,
       TableBlock() => BlockType.table,
       BlankLineBlock() => BlockType.blank,
+      MathBlock() => BlockType.math,
+      FootnoteDefinitionBlock() => BlockType.footnoteDefinition,
+      YamlFrontMatterBlock() => BlockType.yamlFrontMatter,
+      TableOfContentsBlock() => BlockType.tableOfContents,
     };
   }
 
@@ -122,6 +126,10 @@ class MarkdownEditingController extends TextEditingController {
             result.addAll(_collectInlineFormats(inline.children, offset));
           case LinkInline():
             result.add(InlineFormatType.link);
+          case InlineMathInline():
+            result.add(InlineFormatType.math);
+          case FootnoteRefInline():
+          case EmojiInline():
           case PlainTextInline():
           case EscapedCharInline():
           case ImageInline():
@@ -278,6 +286,34 @@ class MarkdownEditingController extends TextEditingController {
 
   /// Toggle superscript (^) around the current selection.
   void toggleSuperscript() => _toggleInlineDelimiter('^');
+
+  /// Toggle inline math ($) around the current selection.
+  void toggleMath() => _toggleInlineDelimiter('\$');
+
+  /// Insert a footnote reference at the cursor position.
+  ///
+  /// Auto-numbers as `[^N]` where N is the next available footnote number.
+  void insertFootnote() {
+    // Count existing footnote refs in the document to determine next number.
+    var maxNum = 0;
+    for (final block in _document.blocks) {
+      for (final inline in block.children) {
+        if (inline is FootnoteRefInline) {
+          final num = int.tryParse(inline.label);
+          if (num != null && num > maxNum) maxNum = num;
+        }
+      }
+    }
+    final nextNum = maxNum + 1;
+    final ref = '[^$nextNum]';
+
+    final offset = selection.baseOffset;
+    final newText = '${text.substring(0, offset)}$ref${text.substring(offset)}';
+    value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: offset + ref.length),
+    );
+  }
 
   void _toggleInlineDelimiter(String delimiter) {
     final sel = selection;
@@ -673,6 +709,16 @@ class MarkdownEditingController extends TextEditingController {
     }
 
     // Note: single ~ does NOT auto-close to avoid conflict with ~~ strikethrough.
+
+    // Dollar sign: auto-close to $$ with cursor between (inline math).
+    if (char == '\$') {
+      final text = newValue.text;
+      final newText = '${text.substring(0, insertPos + 1)}\$${text.substring(insertPos + 1)}';
+      return TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: insertPos + 1),
+      );
+    }
 
     return null;
   }

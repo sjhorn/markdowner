@@ -1,12 +1,24 @@
 import '../core/markdown_nodes.dart';
+import 'emoji_map.dart';
 
 /// Converts a [MarkdownDocument] AST to HTML string.
 class MarkdownToHtmlConverter {
   /// Convert a parsed markdown document to HTML.
   String convert(MarkdownDocument document) {
+    // Collect headings for TOC generation.
+    _headings = <(int level, String text)>[];
+    for (final block in document.blocks) {
+      if (block is HeadingBlock) {
+        final text = block.children.map(_inlineToPlainText).join();
+        _headings.add((block.level, text));
+      } else if (block is SetextHeadingBlock) {
+        final text = block.children.map(_inlineToPlainText).join();
+        _headings.add((block.level, text));
+      }
+    }
+
     final buffer = StringBuffer();
     final blocks = document.blocks;
-
     var i = 0;
     while (i < blocks.length) {
       final block = blocks[i];
@@ -88,6 +100,19 @@ class MarkdownToHtmlConverter {
 
       case OrderedListItemBlock():
         return _convertOrderedListItem(block);
+
+      case MathBlock():
+        return '<pre class="math">\$\$\n${_escapeHtml(block.expression)}\n\$\$</pre>\n';
+
+      case FootnoteDefinitionBlock():
+        final content = _convertInlines(block.children);
+        return '<div class="footnote" data-label="${_escapeHtml(block.label)}"><p>$content</p></div>\n';
+
+      case YamlFrontMatterBlock():
+        return '<!-- front matter -->\n';
+
+      case TableOfContentsBlock():
+        return _buildTocHtml();
     }
   }
 
@@ -196,6 +221,66 @@ class MarkdownToHtmlConverter {
 
       case EscapedCharInline():
         return _escapeHtml(inline.character);
+
+      case InlineMathInline():
+        return '<code class="math">\$${_escapeHtml(inline.expression)}\$</code>';
+
+      case FootnoteRefInline():
+        return '<sup class="footnote-ref">[${_escapeHtml(inline.label)}]</sup>';
+
+      case EmojiInline():
+        final unicode = emojiShortcodes[inline.shortcode];
+        return unicode ?? ':${_escapeHtml(inline.shortcode)}:';
+    }
+  }
+
+  late List<(int level, String text)> _headings;
+
+  String _buildTocHtml() {
+    if (_headings.isEmpty) return '<nav class="toc"></nav>\n';
+    final buf = StringBuffer('<nav class="toc"><ul>\n');
+    for (final (level, text) in _headings) {
+      final id = text.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-');
+      buf.write('<li class="toc-h$level"><a href="#$id">$text</a></li>\n');
+    }
+    buf.write('</ul></nav>\n');
+    return buf.toString();
+  }
+
+  String _inlineToPlainText(MarkdownInline inline) {
+    switch (inline) {
+      case PlainTextInline():
+        return inline.text;
+      case BoldInline():
+        return inline.children.map(_inlineToPlainText).join();
+      case ItalicInline():
+        return inline.children.map(_inlineToPlainText).join();
+      case BoldItalicInline():
+        return inline.children.map(_inlineToPlainText).join();
+      case StrikethroughInline():
+        return inline.children.map(_inlineToPlainText).join();
+      case HighlightInline():
+        return inline.children.map(_inlineToPlainText).join();
+      case SubscriptInline():
+        return inline.children.map(_inlineToPlainText).join();
+      case SuperscriptInline():
+        return inline.children.map(_inlineToPlainText).join();
+      case InlineCodeInline():
+        return inline.code;
+      case LinkInline():
+        return inline.text;
+      case ImageInline():
+        return inline.alt;
+      case AutolinkInline():
+        return inline.url;
+      case EscapedCharInline():
+        return inline.character;
+      case InlineMathInline():
+        return inline.expression;
+      case FootnoteRefInline():
+        return '[^${inline.label}]';
+      case EmojiInline():
+        return ':${inline.shortcode}:';
     }
   }
 

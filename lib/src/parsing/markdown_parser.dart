@@ -18,8 +18,14 @@ class MarkdownParserDefinition extends MarkdownGrammarDefinition {
   // ─── Document ───
 
   @override
-  Parser document() => super.document().map((blocks) {
-        return MarkdownDocument(blocks: List<MarkdownBlock>.from(blocks));
+  Parser document() => super.document().map((parts) {
+        final frontMatter = parts[0];
+        final blocks = parts[1] as List;
+        final allBlocks = <MarkdownBlock>[
+          if (frontMatter != null) frontMatter as MarkdownBlock,
+          ...List<MarkdownBlock>.from(blocks),
+        ];
+        return MarkdownDocument(blocks: allBlocks);
       });
 
   // ─── Block Productions ───
@@ -110,6 +116,17 @@ class MarkdownParserDefinition extends MarkdownGrammarDefinition {
       });
 
   @override
+  Parser mathBlock() => super.mathBlock().token().map((token) {
+        final parts = token.value as List;
+        // parts: [$$, \n, expression, \n, $$, lineEnding]
+        final expression = parts[2] as String;
+        return MathBlock(
+          expression: expression,
+          sourceToken: token,
+        );
+      });
+
+  @override
   Parser thematicBreak() => super.thematicBreak().token().map((token) {
         final parts = token.value as List;
         final marker = parts[0] as String;
@@ -180,6 +197,36 @@ class MarkdownParserDefinition extends MarkdownGrammarDefinition {
           level: level,
           underline: underline,
           children: _castInlines(inlines),
+          sourceToken: token,
+        );
+      });
+
+  @override
+  Parser footnoteDefinition() =>
+      super.footnoteDefinition().token().map((token) {
+        final parts = token.value as List;
+        // parts: [[^, label, ]: , inlineContent, lineEnding]
+        final label = parts[1] as String;
+        final inlines = parts[3] as List;
+        return FootnoteDefinitionBlock(
+          label: label,
+          children: _castInlines(inlines),
+          sourceToken: token,
+        );
+      });
+
+  @override
+  Parser tableOfContents() => super.tableOfContents().token().map((token) {
+        return TableOfContentsBlock(sourceToken: token);
+      });
+
+  @override
+  Parser yamlFrontMatter() => super.yamlFrontMatter().token().map((token) {
+        final parts = token.value as List;
+        // parts: [---, \n, content, \n, ---, lineEnding]
+        final content = parts[2] as String;
+        return YamlFrontMatterBlock(
+          content: content,
           sourceToken: token,
         );
       });
@@ -329,6 +376,36 @@ class MarkdownParserDefinition extends MarkdownGrammarDefinition {
           children: [
             PlainTextInline(text: content, sourceToken: contentToken),
           ],
+          sourceToken: token,
+        );
+      });
+
+  @override
+  Parser inlineMath() => super.inlineMath().token().map((token) {
+        final parts = token.value as List;
+        final expression = parts[1] as String;
+        return InlineMathInline(
+          expression: expression,
+          sourceToken: token,
+        );
+      });
+
+  @override
+  Parser footnoteRef() => super.footnoteRef().token().map((token) {
+        final parts = token.value as List;
+        final label = parts[1] as String;
+        return FootnoteRefInline(
+          label: label,
+          sourceToken: token,
+        );
+      });
+
+  @override
+  Parser emoji() => super.emoji().token().map((token) {
+        final parts = token.value as List;
+        final shortcode = parts[1] as String;
+        return EmojiInline(
+          shortcode: shortcode,
           sourceToken: token,
         );
       });

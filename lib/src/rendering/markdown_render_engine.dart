@@ -94,6 +94,14 @@ class MarkdownRenderEngine {
       case TableBlock():
         // Phase 2: show full source in monospace; WidgetSpan rendering is Phase 4
         return TextSpan(text: block.sourceText, style: theme.codeBlockStyle);
+      case MathBlock():
+        return _buildMathBlockSpan(block, delimiterStyle, revealed);
+      case FootnoteDefinitionBlock():
+        return _buildFootnoteDefinitionSpan(block, baseStyle, delimiterStyle, revealed);
+      case YamlFrontMatterBlock():
+        return _buildYamlFrontMatterSpan(block, delimiterStyle, revealed);
+      case TableOfContentsBlock():
+        return TextSpan(text: block.sourceText, style: theme.tocStyle);
     }
   }
 
@@ -281,6 +289,30 @@ class MarkdownRenderEngine {
           TextSpan(text: '<', style: delimiterStyle),
           TextSpan(text: inline.url, style: theme.linkStyle),
           TextSpan(text: '>', style: delimiterStyle),
+        ];
+
+      case InlineMathInline():
+        return [
+          TextSpan(text: '\$', style: delimiterStyle),
+          TextSpan(text: inline.expression, style: theme.mathStyle),
+          TextSpan(text: '\$', style: delimiterStyle),
+        ];
+
+      case FootnoteRefInline():
+        // Source: [^label]
+        final src = inline.sourceText;
+        return [
+          TextSpan(text: '[^', style: delimiterStyle),
+          TextSpan(text: inline.label, style: theme.footnoteRefStyle),
+          TextSpan(text: src.substring(2 + inline.label.length), style: delimiterStyle),
+        ];
+
+      case EmojiInline():
+        // Delimiter-pair rendering: colons as delimiter, shortcode as content
+        return [
+          TextSpan(text: ':', style: delimiterStyle),
+          TextSpan(text: inline.shortcode, style: theme.emojiStyle),
+          TextSpan(text: ':', style: delimiterStyle),
         ];
     }
   }
@@ -494,6 +526,75 @@ class MarkdownRenderEngine {
       TextSpan(text: inline.text, style: theme.linkStyle),
       TextSpan(text: suffix, style: delimiterStyle),
     ];
+  }
+
+  TextSpan _buildMathBlockSpan(
+    MathBlock block,
+    TextStyle delimiterStyle,
+    bool revealed,
+  ) {
+    // Source: $$\nexpr\n$$\n
+    final src = block.sourceText;
+    final openLine = '\$\$\n';
+    final expr = block.expression;
+    final closeStart = openLine.length + expr.length;
+    final closeLine = src.substring(closeStart);
+
+    return TextSpan(
+      children: [
+        TextSpan(text: openLine, style: delimiterStyle),
+        TextSpan(text: expr, style: theme.mathBlockStyle),
+        TextSpan(text: closeLine, style: delimiterStyle),
+      ],
+    );
+  }
+
+  TextSpan _buildFootnoteDefinitionSpan(
+    FootnoteDefinitionBlock block,
+    TextStyle baseStyle,
+    TextStyle delimiterStyle,
+    bool revealed,
+  ) {
+    final prefix = '[^${block.label}]: ';
+    final inlineSpans = _buildInlineSpanList(
+      block.children,
+      baseStyle,
+      delimiterStyle,
+      revealed,
+    );
+    final contentEnd = block.children.isEmpty
+        ? prefix.length
+        : block.children.last.sourceStop - block.sourceStart;
+    final suffix = block.sourceText.substring(contentEnd);
+
+    return TextSpan(
+      children: [
+        TextSpan(text: prefix, style: delimiterStyle),
+        ...inlineSpans,
+        if (suffix.isNotEmpty) TextSpan(text: suffix, style: baseStyle),
+      ],
+    );
+  }
+
+  TextSpan _buildYamlFrontMatterSpan(
+    YamlFrontMatterBlock block,
+    TextStyle delimiterStyle,
+    bool revealed,
+  ) {
+    // Source: ---\ncontent\n---\n
+    final src = block.sourceText;
+    final openLine = '---\n';
+    final content = block.content;
+    final closeStart = openLine.length + content.length;
+    final closeLine = src.substring(closeStart);
+
+    return TextSpan(
+      children: [
+        TextSpan(text: openLine, style: delimiterStyle),
+        TextSpan(text: content, style: theme.frontMatterStyle),
+        TextSpan(text: closeLine, style: delimiterStyle),
+      ],
+    );
   }
 
   /// Helper to build open-delimiter + content + close-delimiter spans.

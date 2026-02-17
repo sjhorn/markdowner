@@ -80,14 +80,27 @@ class HtmlToMarkdownConverter {
         buffer.write('~');
 
       case 'sup':
-        buffer.write('^');
-        _convertInlineChildren(element.nodes, buffer);
-        buffer.write('^');
+        if (element.className.contains('footnote-ref')) {
+          // Footnote reference: <sup class="footnote-ref">[1]</sup>
+          final text = element.text.trim();
+          // Extract label from brackets: [1] -> 1
+          final label = text.startsWith('[') && text.endsWith(']')
+              ? text.substring(1, text.length - 1)
+              : text;
+          buffer.write('[^$label]');
+        } else {
+          buffer.write('^');
+          _convertInlineChildren(element.nodes, buffer);
+          buffer.write('^');
+        }
 
       case 'code':
         // Check if inside a <pre> — handled by parent <pre> case.
         if (element.parent?.localName == 'pre') {
           // Code block content.
+          buffer.write(element.text);
+        } else if (element.className.contains('math')) {
+          // Math inline: <code class="math">$expr$</code>
           buffer.write(element.text);
         } else {
           buffer.write('`');
@@ -96,6 +109,12 @@ class HtmlToMarkdownConverter {
         }
 
       case 'pre':
+        // Check for math block: <pre class="math">
+        if (element.className.contains('math')) {
+          buffer.write(element.text);
+          buffer.write('\n');
+          return;
+        }
         // Look for <code> child.
         final codeChild = element.children
             .where((e) => e.localName == 'code')
@@ -146,7 +165,32 @@ class HtmlToMarkdownConverter {
       case 'table':
         _convertTable(element, buffer);
 
-      case 'div' || 'section' || 'article' || 'main' || 'header' || 'footer' || 'nav':
+      case 'nav':
+        // Check for TOC: <nav class="toc">
+        if (element.className.contains('toc')) {
+          buffer.write('[TOC]\n\n');
+          return;
+        }
+        _convertNodes(element.nodes, buffer);
+
+      case 'div':
+        // Check for footnote definition: <div class="footnote" data-label="1">
+        if (element.className.contains('footnote')) {
+          final label = element.attributes['data-label'] ?? '1';
+          final innerBuf = StringBuffer();
+          // Get the content from <p> child if present.
+          final pChild = element.querySelector('p');
+          if (pChild != null) {
+            _convertInlineChildren(pChild.nodes, innerBuf);
+          } else {
+            _convertInlineChildren(element.nodes, innerBuf);
+          }
+          buffer.write('[^$label]: ${innerBuf.toString().trim()}\n');
+          return;
+        }
+        _convertNodes(element.nodes, buffer);
+
+      case 'section' || 'article' || 'main' || 'header' || 'footer':
         // Block containers: recurse into children.
         _convertNodes(element.nodes, buffer);
 

@@ -73,6 +73,32 @@ class CursorMapper {
         final codeLen = block.code.length;
         final closeStart = openLineLen + codeLen;
         ranges.add((closeStart, src.length));
+
+      case MathBlock():
+        final src = block.sourceText;
+        final openLen = 3; // $$\n
+        ranges.add((0, openLen));
+        final exprLen = block.expression.length;
+        final closeStart = openLen + exprLen;
+        ranges.add((closeStart, src.length));
+
+      case FootnoteDefinitionBlock():
+        // Prefix [^label]:  is delimiter
+        final prefixLen = 2 + block.label.length + 2; // [^ + label + ]:
+        ranges.add((0, prefixLen));
+        _addInlineDelimiterRanges(block.children, blockStart, ranges);
+
+      case YamlFrontMatterBlock():
+        final src = block.sourceText;
+        final openLen = 4; // ---\n
+        ranges.add((0, openLen));
+        final contentLen = block.content.length;
+        final closeStart = openLen + contentLen;
+        ranges.add((closeStart, src.length));
+
+      case TableOfContentsBlock():
+        // Entire source is syntax-like (similar to thematic break)
+        ranges.add((0, block.sourceText.length));
     }
 
     return ranges;
@@ -192,6 +218,34 @@ class CursorMapper {
           ranges.add((start, start + 1));
           // Closing `>`
           ranges.add((end - 1, end));
+
+        case InlineMathInline():
+          final start = inline.sourceStart - blockStart;
+          // Opening `$`
+          ranges.add((start, start + 1));
+          // Closing `$`
+          ranges.add((
+            inline.sourceStop - blockStart - 1,
+            inline.sourceStop - blockStart,
+          ));
+
+        case FootnoteRefInline():
+          final start = inline.sourceStart - blockStart;
+          // Opening `[^`
+          ranges.add((start, start + 2));
+          // Closing `]`
+          final end = inline.sourceStop - blockStart;
+          ranges.add((end - 1, end));
+
+        case EmojiInline():
+          final start = inline.sourceStart - blockStart;
+          // Opening `:`
+          ranges.add((start, start + 1));
+          // Closing `:`
+          ranges.add((
+            inline.sourceStop - blockStart - 1,
+            inline.sourceStop - blockStart,
+          ));
       }
     }
   }

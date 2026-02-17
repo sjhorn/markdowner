@@ -56,6 +56,25 @@ Inline `code` looks like this, and ~~strikethrough~~ like this.
 
 Try ==highlighted text== for emphasis, H~2~O for subscript, and x^2^ for superscript.
 
+### Math
+
+Inline math: \$E=mc^2\$ and \$x^2+y^2\$.
+
+\$\$
+f(x) = \\int_{-\\infty}^{\\infty} e^{-x^2} dx
+\$\$
+
+### Footnotes
+
+This has a footnote[^1] and another[^2].
+
+[^1]: First footnote definition
+[^2]: Second footnote definition
+
+### Emoji
+
+Some emoji shortcodes: :smile: :heart: :fire: :rocket: :thumbsup:
+
 Escaped characters: \\* \\# \\~
 
 ### Links and Images
@@ -87,7 +106,11 @@ void main() {
 
 ***
 
-That was a thematic break above. Happy editing!
+That was a thematic break above.
+
+[TOC]
+
+Happy editing!
 ''';
 
   @override

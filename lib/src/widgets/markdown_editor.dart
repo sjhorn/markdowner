@@ -174,6 +174,8 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   void outdent() => _controller.outdent();
   void insertLink() => _controller.insertLink();
   void toggleCodeBlock() => _controller.toggleCodeBlock();
+  void toggleMath() => _controller.toggleMath();
+  void insertFootnote() => _controller.insertFootnote();
 
   @override
   void initState() {
@@ -425,6 +427,11 @@ class MarkdownEditorState extends State<MarkdownEditor> {
             shift: true, meta: _isMacOS, control: !_isMacOS):
             const _ToggleCodeBlockIntent(),
 
+        // Toggle inline math
+        SingleActivator(LogicalKeyboardKey.keyM,
+            shift: true, meta: _isMacOS, control: !_isMacOS):
+            const _ToggleMathIntent(),
+
         // Save
         SingleActivator(LogicalKeyboardKey.keyS,
             meta: _isMacOS, control: !_isMacOS): const _SaveIntent(),
@@ -458,10 +465,68 @@ class MarkdownEditorState extends State<MarkdownEditor> {
         _ToggleCodeBlockIntent:
             CallbackAction<_ToggleCodeBlockIntent>(
                 onInvoke: (_) => toggleCodeBlock()),
+        _ToggleMathIntent:
+            CallbackAction<_ToggleMathIntent>(
+                onInvoke: (_) => toggleMath()),
         _SaveIntent: CallbackAction<_SaveIntent>(
             onInvoke: (_) =>
                 widget.onSaved?.call(_controller.text)),
       };
+
+  /// Build the context menu with standard + markdown formatting actions.
+  Widget _buildContextMenu(
+    BuildContext context,
+    EditableTextState editableTextState,
+  ) {
+    final buttonItems = editableTextState.contextMenuButtonItems;
+
+    // Add markdown formatting items when text is selected.
+    final hasSelection = !_controller.selection.isCollapsed;
+    if (hasSelection) {
+      buttonItems.addAll([
+        ContextMenuButtonItem(
+          label: 'Bold',
+          onPressed: () {
+            ContextMenuController.removeAny();
+            toggleBold();
+          },
+        ),
+        ContextMenuButtonItem(
+          label: 'Italic',
+          onPressed: () {
+            ContextMenuController.removeAny();
+            toggleItalic();
+          },
+        ),
+        ContextMenuButtonItem(
+          label: 'Code',
+          onPressed: () {
+            ContextMenuController.removeAny();
+            toggleInlineCode();
+          },
+        ),
+        ContextMenuButtonItem(
+          label: 'Strikethrough',
+          onPressed: () {
+            ContextMenuController.removeAny();
+            toggleStrikethrough();
+          },
+        ),
+        ContextMenuButtonItem(
+          label: 'Link',
+          onPressed: () {
+            ContextMenuController.removeAny();
+            insertLink();
+          },
+        ),
+      ]);
+    }
+
+    return AdaptiveTextSelectionToolbar.buttonItems(
+      anchors: editableTextState.contextMenuAnchors,
+      buttonItems: buttonItems,
+    );
+  }
 
   /// Intercept Tab/Shift+Tab key events.
   KeyEventResult _handleTabKeyEvent(FocusNode node, KeyEvent event) {
@@ -513,6 +578,7 @@ class MarkdownEditorState extends State<MarkdownEditor> {
                 autofocus: widget.autofocus,
                 maxLines: null,
                 keyboardType: TextInputType.multiline,
+                contextMenuBuilder: _buildContextMenu,
                 inputFormatters: [
                   // Tab chars are handled by _handleTabKeyEvent; block
                   // any platform-injected \t from reaching the controller.
@@ -734,6 +800,10 @@ class _InsertLinkIntent extends Intent {
 
 class _ToggleCodeBlockIntent extends Intent {
   const _ToggleCodeBlockIntent();
+}
+
+class _ToggleMathIntent extends Intent {
+  const _ToggleMathIntent();
 }
 
 class _SaveIntent extends Intent {

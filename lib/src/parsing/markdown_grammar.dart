@@ -11,7 +11,8 @@ import '../core/markdown_extension.dart';
 /// - Blocks: paragraphs, ATX headings (#–######), blank lines, thematic breaks
 /// - Inlines: plain text, **bold**, *italic*, ***bold-italic***, `inline code`,
 ///   ~~strikethrough~~, escaped chars
-/// - Extensions: ==highlight==, ~subscript~, ^superscript^
+/// - Extensions: ==highlight==, ~subscript~, ^superscript^, $math$, [^footnotes],
+///   :emoji:, YAML front matter, [TOC]
 class MarkdownGrammarDefinition extends GrammarDefinition {
   /// Which optional extensions are enabled. Defaults to all.
   final Set<MarkdownExtension> enabledExtensions;
@@ -22,7 +23,8 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
   @override
   Parser start() => ref0(document).end();
 
-  Parser document() => ref0(block).star();
+  Parser document() =>
+      ref0(yamlFrontMatter).optional() & ref0(block).star();
 
   // ─── Block-Level Productions ───
   //
@@ -33,12 +35,15 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       ref0(blankLine) |
       ref0(atxHeading) |
       ref0(fencedCodeBlock) |
+      ref0(mathBlock) |
       ref0(table) |
       ref0(thematicBreak) |
       ref0(blockquote) |
       ref0(unorderedListItem) |
       ref0(orderedListItem) |
       ref0(setextHeading) |
+      ref0(footnoteDefinition) |
+      ref0(tableOfContents) |
       ref0(paragraph);
 
   /// A blank line is a bare newline character.
@@ -76,6 +81,20 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       ((char('`').times(3) & char('`').star()).flatten() |
           (char('~').times(3) & char('~').star()).flatten()) &
       ref0(lineEnding);
+
+  /// Math display block: `$$\nexpr\n$$`.
+  /// Only active when [MarkdownExtension.math] is enabled.
+  Parser mathBlock() {
+    if (!enabledExtensions.contains(MarkdownExtension.math)) {
+      return failure(message: 'math extension disabled');
+    }
+    return string('\$\$') &
+        char('\n') &
+        any().starLazy(char('\n') & string('\$\$') & ref0(lineEnding)).flatten() &
+        char('\n') &
+        string('\$\$') &
+        ref0(lineEnding);
+  }
 
   /// GFM table: header row + delimiter row + body rows.
   Parser table() =>
@@ -133,6 +152,42 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       (char('=').plusString() | char('-').plusString()) &
       ref0(lineEnding);
 
+  /// Footnote definition: `[^ref]: content`.
+  /// Only active when [MarkdownExtension.footnotes] is enabled.
+  Parser footnoteDefinition() {
+    if (!enabledExtensions.contains(MarkdownExtension.footnotes)) {
+      return failure(message: 'footnotes extension disabled');
+    }
+    return string('[^') &
+        noneOf(']\n').plusString() &
+        string(']: ') &
+        ref0(inlineContent) &
+        ref0(lineEnding);
+  }
+
+  /// Table of contents placeholder: `[TOC]`.
+  /// Only active when [MarkdownExtension.tableOfContents] is enabled.
+  Parser tableOfContents() {
+    if (!enabledExtensions.contains(MarkdownExtension.tableOfContents)) {
+      return failure(message: 'tableOfContents extension disabled');
+    }
+    return string('[TOC]') & ref0(lineEnding);
+  }
+
+  /// YAML front matter: `---\ncontent\n---` at document start.
+  /// Only active when [MarkdownExtension.yamlFrontMatter] is enabled.
+  Parser yamlFrontMatter() {
+    if (!enabledExtensions.contains(MarkdownExtension.yamlFrontMatter)) {
+      return failure(message: 'yamlFrontMatter extension disabled');
+    }
+    return string('---') &
+        char('\n') &
+        any().starLazy(char('\n') & string('---') & ref0(lineEnding)).flatten() &
+        char('\n') &
+        string('---') &
+        ref0(lineEnding);
+  }
+
   /// Paragraph: inline content followed by line ending.
   Parser paragraph() => ref0(inlineContent) & ref0(lineEnding);
 
@@ -151,10 +206,13 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       ref0(strikethrough) |
       ref0(subscript) |
       ref0(inlineCode) |
+      ref0(inlineMath) |
       ref0(highlight) |
       ref0(image) |
+      ref0(footnoteRef) |
       ref0(link) |
       ref0(autolink) |
+      ref0(emoji) |
       ref0(superscript) |
       ref0(plainText) |
       ref0(fallbackChar);
@@ -214,6 +272,34 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       return failure(message: 'superscript extension disabled');
     }
     return char('^') & noneOf('^\n').plusString() & char('^');
+  }
+
+  /// Inline math: `$expr$`. Expression excludes spaces and newlines to avoid
+  /// matching `$5 and $10` as math.
+  /// Only active when [MarkdownExtension.math] is enabled.
+  Parser inlineMath() {
+    if (!enabledExtensions.contains(MarkdownExtension.math)) {
+      return failure(message: 'math extension disabled');
+    }
+    return char('\$') & noneOf('\$ \n').plusString() & char('\$');
+  }
+
+  /// Footnote reference: `[^ref]`.
+  /// Only active when [MarkdownExtension.footnotes] is enabled.
+  Parser footnoteRef() {
+    if (!enabledExtensions.contains(MarkdownExtension.footnotes)) {
+      return failure(message: 'footnotes extension disabled');
+    }
+    return string('[^') & noneOf(']\n').plusString() & char(']');
+  }
+
+  /// Emoji shortcode: `:smile:`.
+  /// Only active when [MarkdownExtension.emoji] is enabled.
+  Parser emoji() {
+    if (!enabledExtensions.contains(MarkdownExtension.emoji)) {
+      return failure(message: 'emoji extension disabled');
+    }
+    return char(':') & pattern('a-zA-Z0-9_+-').plusString() & char(':');
   }
 
   /// Inline code: `` `code` `` or ``` ``code`` ```.
@@ -294,10 +380,12 @@ class MarkdownGrammarDefinition extends GrammarDefinition {
       char('|') |
       char('~') |
       char('=') |
-      char('^');
+      char('^') |
+      char('\$') |
+      char(':');
 
   /// A run of non-special, non-newline characters.
-  Parser plainText() => noneOf('*_`~=^\\[!<\n').plusString();
+  Parser plainText() => noneOf('*_`~=^\$:\\[!<\n').plusString();
 
   /// Fallback: any single non-newline character that didn't start a construct.
   Parser fallbackChar() => noneOf('\n');

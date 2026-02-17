@@ -13,6 +13,7 @@ enum InlineFormatType {
   subscript,
   superscript,
   link,
+  math,
 }
 
 /// Block types for determining the active block at cursor position.
@@ -26,6 +27,10 @@ enum BlockType {
   thematicBreak,
   table,
   blank,
+  math,
+  footnoteDefinition,
+  yamlFrontMatter,
+  tableOfContents,
 }
 
 /// Items available in the default markdown toolbar.
@@ -37,8 +42,10 @@ enum MarkdownToolbarItem {
   highlight,
   subscript,
   superscript,
+  math,
   heading,
   link,
+  footnote,
   codeBlock,
   indent,
   outdent,
@@ -62,11 +69,15 @@ class MarkdownToolbar extends StatelessWidget {
   /// Which toolbar items to show. Defaults to all items.
   final List<MarkdownToolbarItem>? items;
 
+  /// Whether to show text labels below/beside icons (desktop mode).
+  final bool showLabels;
+
   const MarkdownToolbar({
     super.key,
     required this.controller,
     required this.editorKey,
     this.items,
+    this.showLabels = false,
   });
 
   static const _defaultItems = [
@@ -74,8 +85,13 @@ class MarkdownToolbar extends StatelessWidget {
     MarkdownToolbarItem.italic,
     MarkdownToolbarItem.inlineCode,
     MarkdownToolbarItem.strikethrough,
+    MarkdownToolbarItem.highlight,
+    MarkdownToolbarItem.subscript,
+    MarkdownToolbarItem.superscript,
+    MarkdownToolbarItem.math,
     MarkdownToolbarItem.heading,
     MarkdownToolbarItem.link,
+    MarkdownToolbarItem.footnote,
     MarkdownToolbarItem.codeBlock,
     MarkdownToolbarItem.indent,
     MarkdownToolbarItem.outdent,
@@ -98,17 +114,27 @@ class MarkdownToolbar extends StatelessWidget {
         final blockType = controller.activeBlockType;
         final headingLevel = controller.activeHeadingLevel;
 
+        final buttons = _buildButtons(
+          context,
+          visibleItems,
+          inlineFormats,
+          blockType,
+          headingLevel,
+        );
+
+        if (showLabels) {
+          return Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: buttons,
+          );
+        }
+
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             mainAxisSize: MainAxisSize.min,
-            children: _buildButtons(
-              context,
-              visibleItems,
-              inlineFormats,
-              blockType,
-              headingLevel,
-            ),
+            children: buttons,
           ),
         );
       },
@@ -141,6 +167,7 @@ class MarkdownToolbar extends StatelessWidget {
             tooltip: 'Bold',
             isActive: inlineFormats.contains(InlineFormatType.bold),
             onPressed: () => _performAction((s) => s.toggleBold()),
+            showLabel: showLabels,
           ));
         case MarkdownToolbarItem.italic:
           widgets.add(_ToolbarButton(
@@ -148,6 +175,7 @@ class MarkdownToolbar extends StatelessWidget {
             tooltip: 'Italic',
             isActive: inlineFormats.contains(InlineFormatType.italic),
             onPressed: () => _performAction((s) => s.toggleItalic()),
+            showLabel: showLabels,
           ));
         case MarkdownToolbarItem.inlineCode:
           widgets.add(_ToolbarButton(
@@ -155,6 +183,7 @@ class MarkdownToolbar extends StatelessWidget {
             tooltip: 'Inline code',
             isActive: inlineFormats.contains(InlineFormatType.inlineCode),
             onPressed: () => _performAction((s) => s.toggleInlineCode()),
+            showLabel: showLabels,
           ));
         case MarkdownToolbarItem.strikethrough:
           widgets.add(_ToolbarButton(
@@ -164,6 +193,7 @@ class MarkdownToolbar extends StatelessWidget {
                 inlineFormats.contains(InlineFormatType.strikethrough),
             onPressed: () =>
                 _performAction((s) => s.toggleStrikethrough()),
+            showLabel: showLabels,
           ));
         case MarkdownToolbarItem.highlight:
           widgets.add(_ToolbarButton(
@@ -173,6 +203,7 @@ class MarkdownToolbar extends StatelessWidget {
                 inlineFormats.contains(InlineFormatType.highlight),
             onPressed: () =>
                 _performAction((s) => s.toggleHighlight()),
+            showLabel: showLabels,
           ));
         case MarkdownToolbarItem.subscript:
           widgets.add(_ToolbarButton(
@@ -182,6 +213,7 @@ class MarkdownToolbar extends StatelessWidget {
                 inlineFormats.contains(InlineFormatType.subscript),
             onPressed: () =>
                 _performAction((s) => s.toggleSubscript()),
+            showLabel: showLabels,
           ));
         case MarkdownToolbarItem.superscript:
           widgets.add(_ToolbarButton(
@@ -191,6 +223,15 @@ class MarkdownToolbar extends StatelessWidget {
                 inlineFormats.contains(InlineFormatType.superscript),
             onPressed: () =>
                 _performAction((s) => s.toggleSuperscript()),
+            showLabel: showLabels,
+          ));
+        case MarkdownToolbarItem.math:
+          widgets.add(_ToolbarButton(
+            icon: Icons.functions,
+            tooltip: 'Math',
+            isActive: inlineFormats.contains(InlineFormatType.math),
+            onPressed: () => _performAction((s) => s.toggleMath()),
+            showLabel: showLabels,
           ));
         case MarkdownToolbarItem.heading:
           widgets.add(_HeadingDropdown(
@@ -204,6 +245,14 @@ class MarkdownToolbar extends StatelessWidget {
             tooltip: 'Insert link',
             isActive: inlineFormats.contains(InlineFormatType.link),
             onPressed: () => _performAction((s) => s.insertLink()),
+            showLabel: showLabels,
+          ));
+        case MarkdownToolbarItem.footnote:
+          widgets.add(_ToolbarButton(
+            icon: Icons.format_list_numbered,
+            tooltip: 'Insert footnote',
+            onPressed: () => _performAction((s) => s.insertFootnote()),
+            showLabel: showLabels,
           ));
         case MarkdownToolbarItem.codeBlock:
           widgets.add(_ToolbarButton(
@@ -211,18 +260,21 @@ class MarkdownToolbar extends StatelessWidget {
             tooltip: 'Toggle code block',
             isActive: blockType == BlockType.codeBlock,
             onPressed: () => _performAction((s) => s.toggleCodeBlock()),
+            showLabel: showLabels,
           ));
         case MarkdownToolbarItem.indent:
           widgets.add(_ToolbarButton(
             icon: Icons.format_indent_increase,
             tooltip: 'Indent',
             onPressed: () => _performAction((s) => s.indent()),
+            showLabel: showLabels,
           ));
         case MarkdownToolbarItem.outdent:
           widgets.add(_ToolbarButton(
             icon: Icons.format_indent_decrease,
             tooltip: 'Outdent',
             onPressed: () => _performAction((s) => s.outdent()),
+            showLabel: showLabels,
           ));
         case MarkdownToolbarItem.undo:
           widgets.add(_UndoRedoButton(
@@ -260,9 +312,10 @@ class MarkdownToolbar extends StatelessWidget {
         MarkdownToolbarItem.highlight,
         MarkdownToolbarItem.subscript,
         MarkdownToolbarItem.superscript,
+        MarkdownToolbarItem.math,
       },
       {MarkdownToolbarItem.heading},
-      {MarkdownToolbarItem.link, MarkdownToolbarItem.codeBlock},
+      {MarkdownToolbarItem.link, MarkdownToolbarItem.footnote, MarkdownToolbarItem.codeBlock},
       {MarkdownToolbarItem.indent, MarkdownToolbarItem.outdent},
       {MarkdownToolbarItem.undo, MarkdownToolbarItem.redo},
     ];
@@ -280,18 +333,34 @@ class _ToolbarButton extends StatelessWidget {
   final String tooltip;
   final bool isActive;
   final VoidCallback onPressed;
+  final bool showLabel;
 
   const _ToolbarButton({
     required this.icon,
     required this.tooltip,
     this.isActive = false,
     required this.onPressed,
+    this.showLabel = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final activeColor = theme.colorScheme.primary;
+
+    if (showLabel) {
+      return TextButton.icon(
+        icon: Icon(icon, color: isActive ? activeColor : null),
+        label: Text(
+          tooltip,
+          style: TextStyle(
+            color: isActive ? activeColor : null,
+            fontSize: 12,
+          ),
+        ),
+        onPressed: onPressed,
+      );
+    }
 
     return IconButton(
       icon: Icon(icon),

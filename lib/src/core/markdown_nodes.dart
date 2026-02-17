@@ -409,3 +409,72 @@ class SuperscriptInline extends MarkdownInline {
   int get contentStart => sourceStart + 1;
   int get contentStop => sourceStop - 1;
 }
+
+// ─── Inline Nodes (Phase 4f+ Extensions) ───
+
+/// Inline math: `$expr$`.
+class InlineMathInline extends MarkdownInline {
+  final String expression;
+
+  InlineMathInline({required this.expression, required super.sourceToken});
+
+  int get contentStart => sourceStart + 1;
+  int get contentStop => sourceStop - 1;
+}
+
+/// Footnote reference: `[^ref]`.
+class FootnoteRefInline extends MarkdownInline {
+  final String label;
+
+  FootnoteRefInline({required this.label, required super.sourceToken});
+}
+
+/// Emoji shortcode: `:smile:`.
+class EmojiInline extends MarkdownInline {
+  final String shortcode;
+
+  EmojiInline({required this.shortcode, required super.sourceToken});
+}
+
+// ─── Block Nodes (Phase 4f+ Extensions) ───
+
+/// Math display block: `$$\nexpr\n$$`.
+class MathBlock extends MarkdownBlock {
+  final String expression;
+
+  @override
+  List<MarkdownInline> get children => const [];
+
+  MathBlock({required this.expression, required super.sourceToken});
+}
+
+/// Footnote definition: `[^ref]: content`.
+class FootnoteDefinitionBlock extends MarkdownBlock {
+  final String label;
+  @override
+  final List<MarkdownInline> children;
+
+  FootnoteDefinitionBlock({
+    required this.label,
+    required this.children,
+    required super.sourceToken,
+  });
+}
+
+/// YAML front matter: `---\ncontent\n---`.
+class YamlFrontMatterBlock extends MarkdownBlock {
+  final String content;
+
+  @override
+  List<MarkdownInline> get children => const [];
+
+  YamlFrontMatterBlock({required this.content, required super.sourceToken});
+}
+
+/// Table of contents placeholder: `[TOC]`.
+class TableOfContentsBlock extends MarkdownBlock {
+  @override
+  List<MarkdownInline> get children => const [];
+
+  TableOfContentsBlock({required super.sourceToken});
+}

@@ -1838,14 +1838,16 @@ enum ImageInsertSource {
 - [x] `toolbarBuilder` callback for fully custom toolbars
 
 **Optional Extensions (Grammar Additions):**
-- [ ] Math: inline `$expr$` and block `$$expr$$` — render via `flutter_math_fork`
-- [ ] Footnotes: `[^ref]` and `[^ref]: definition` — render as superscript with popup
+- [x] Math: inline `$expr$` and block `$$expr$$` — grammar, parser, render, cursor mapper, HTML, theme, controller toggle, Cmd+Shift+M shortcut
+- [x] Footnotes: `[^ref]` and `[^ref]: definition` — grammar, parser, render, cursor mapper, HTML, controller insert, toolbar button
 - [x] Highlight: `==text==` — render with background color
-- [ ] Emoji shortcodes: `:smile:` → 😄 — render as Unicode emoji
-- [ ] YAML front matter: `---` delimited block — hidden or collapsible in editor
+- [x] Emoji shortcodes: `:smile:` → Unicode (in HTML export); editor shows `:shortcode:` with delimiter styling
+- [x] YAML front matter: `---` delimited block — position-locked to document start, muted monospace rendering
 - [x] Subscript `~text~` and superscript `^text^`
-- [ ] Table of contents `[TOC]` — render as a dynamic list of headings
+- [x] Table of contents `[TOC]` — styled placeholder; HTML export generates heading list
 - [x] Extension config: `MarkdownExtension` enum, enabled/disabled via constructor param on grammar/parser
+- [x] Desktop toolbar: `showLabels` parameter for icon+text layout with `Wrap` for multi-row
+- [x] Context menu: right-click/long-press with Bold, Italic, Code, Strikethrough, Link actions
 
 **Image Handling:**
 - [ ] Drag-and-drop image insertion (desktop + web)

@@ -82,6 +82,18 @@ String _describeBlock(MarkdownBlock block) {
       'TableBlock(cols=${block.alignments.length}, '
           'rows=${block.bodyRows.length}, '
           'source=${block.sourceStart}..${block.sourceStop})',
+    MathBlock() =>
+      'MathBlock(expression="${_escape(block.expression)}", '
+          'source=${block.sourceStart}..${block.sourceStop})',
+    FootnoteDefinitionBlock() =>
+      'FootnoteDefinition(label="${block.label}", '
+          'children=[${block.children.map(_describeInline).join(', ')}], '
+          'source=${block.sourceStart}..${block.sourceStop})',
+    YamlFrontMatterBlock() =>
+      'YamlFrontMatter(content="${_escape(block.content)}", '
+          'source=${block.sourceStart}..${block.sourceStop})',
+    TableOfContentsBlock() =>
+      'TableOfContents(source=${block.sourceStart}..${block.sourceStop})',
   };
 }
 
@@ -113,6 +125,9 @@ String _describeInline(MarkdownInline inline) {
       'Subscript([${inline.children.map(_describeInline).join(', ')}])',
     SuperscriptInline() =>
       'Superscript([${inline.children.map(_describeInline).join(', ')}])',
+    InlineMathInline() => 'InlineMath("${_escape(inline.expression)}")',
+    FootnoteRefInline() => 'FootnoteRef("${inline.label}")',
+    EmojiInline() => 'Emoji("${inline.shortcode}")',
   };
 }
 

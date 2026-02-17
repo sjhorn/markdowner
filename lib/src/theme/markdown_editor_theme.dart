@@ -19,6 +19,27 @@ class MarkdownEditorTheme {
   final TextStyle codeBlockStyle;
   final TextStyle blockquoteStyle;
 
+  /// Style for inline math expressions (`$expr$`).
+  final TextStyle mathStyle;
+
+  /// Style for math display blocks (`$$\nexpr\n$$`).
+  final TextStyle mathBlockStyle;
+
+  /// Style for footnote references (`[^ref]`).
+  final TextStyle footnoteRefStyle;
+
+  /// Style for footnote definition prefix.
+  final TextStyle footnoteDefinitionStyle;
+
+  /// Style for emoji shortcodes (`:smile:`).
+  final TextStyle emojiStyle;
+
+  /// Style for YAML front matter content.
+  final TextStyle frontMatterStyle;
+
+  /// Style for `[TOC]` placeholder.
+  final TextStyle tocStyle;
+
   /// Style for thematic break markers (`---`, `***`) in collapsed mode.
   final TextStyle thematicBreakStyle;
 
@@ -55,6 +76,13 @@ class MarkdownEditorTheme {
     required this.linkStyle,
     required this.codeBlockStyle,
     required this.blockquoteStyle,
+    required this.mathStyle,
+    required this.mathBlockStyle,
+    required this.footnoteRefStyle,
+    required this.footnoteDefinitionStyle,
+    required this.emojiStyle,
+    required this.frontMatterStyle,
+    required this.tocStyle,
     required this.thematicBreakStyle,
     required this.taskUncheckedStyle,
     required this.taskCheckedStyle,
@@ -119,6 +147,35 @@ class MarkdownEditorTheme {
       blockquoteStyle: base.copyWith(
         fontStyle: FontStyle.italic,
         color: const Color(0xFF666666),
+      ),
+      mathStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 14,
+        color: const Color(0xFF6A1B9A),
+      ),
+      mathBlockStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 14,
+        color: const Color(0xFF6A1B9A),
+      ),
+      footnoteRefStyle: base.copyWith(
+        fontSize: 12,
+        color: const Color(0xFF2196F3),
+      ),
+      footnoteDefinitionStyle: base.copyWith(
+        color: const Color(0xFF666666),
+      ),
+      emojiStyle: base.copyWith(
+        color: const Color(0xFFE65100),
+      ),
+      frontMatterStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 14,
+        color: const Color(0xFF888888),
+      ),
+      tocStyle: base.copyWith(
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF2196F3),
       ),
       thematicBreakStyle: base.copyWith(
         decoration: TextDecoration.lineThrough,
@@ -209,6 +266,35 @@ class MarkdownEditorTheme {
         fontStyle: FontStyle.italic,
         color: const Color(0xFF999999),
       ),
+      mathStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 14,
+        color: const Color(0xFFCE93D8),
+      ),
+      mathBlockStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 14,
+        color: const Color(0xFFCE93D8),
+      ),
+      footnoteRefStyle: base.copyWith(
+        fontSize: 12,
+        color: const Color(0xFF64B5F6),
+      ),
+      footnoteDefinitionStyle: base.copyWith(
+        color: const Color(0xFF999999),
+      ),
+      emojiStyle: base.copyWith(
+        color: const Color(0xFFFFAB40),
+      ),
+      frontMatterStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 14,
+        color: const Color(0xFF777777),
+      ),
+      tocStyle: base.copyWith(
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF64B5F6),
+      ),
       thematicBreakStyle: base.copyWith(
         decoration: TextDecoration.lineThrough,
         decorationColor: const Color(0xFF555555),
@@ -259,6 +345,13 @@ class MarkdownEditorTheme {
     TextStyle? linkStyle,
     TextStyle? codeBlockStyle,
     TextStyle? blockquoteStyle,
+    TextStyle? mathStyle,
+    TextStyle? mathBlockStyle,
+    TextStyle? footnoteRefStyle,
+    TextStyle? footnoteDefinitionStyle,
+    TextStyle? emojiStyle,
+    TextStyle? frontMatterStyle,
+    TextStyle? tocStyle,
     TextStyle? thematicBreakStyle,
     TextStyle? taskUncheckedStyle,
     TextStyle? taskCheckedStyle,
@@ -283,6 +376,13 @@ class MarkdownEditorTheme {
       linkStyle: linkStyle ?? this.linkStyle,
       codeBlockStyle: codeBlockStyle ?? this.codeBlockStyle,
       blockquoteStyle: blockquoteStyle ?? this.blockquoteStyle,
+      mathStyle: mathStyle ?? this.mathStyle,
+      mathBlockStyle: mathBlockStyle ?? this.mathBlockStyle,
+      footnoteRefStyle: footnoteRefStyle ?? this.footnoteRefStyle,
+      footnoteDefinitionStyle: footnoteDefinitionStyle ?? this.footnoteDefinitionStyle,
+      emojiStyle: emojiStyle ?? this.emojiStyle,
+      frontMatterStyle: frontMatterStyle ?? this.frontMatterStyle,
+      tocStyle: tocStyle ?? this.tocStyle,
       thematicBreakStyle: thematicBreakStyle ?? this.thematicBreakStyle,
       taskUncheckedStyle: taskUncheckedStyle ?? this.taskUncheckedStyle,
       taskCheckedStyle: taskCheckedStyle ?? this.taskCheckedStyle,

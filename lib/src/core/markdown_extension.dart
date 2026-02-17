@@ -2,4 +2,13 @@
 ///
 /// All extensions are enabled by default. Pass a subset to the
 /// grammar/parser constructors to control which extensions are active.
-enum MarkdownExtension { highlight, subscript, superscript }
+enum MarkdownExtension {
+  highlight,
+  subscript,
+  superscript,
+  math,
+  footnotes,
+  emoji,
+  yamlFrontMatter,
+  tableOfContents,
+}
