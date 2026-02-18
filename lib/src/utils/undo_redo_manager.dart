@@ -25,6 +25,13 @@ class UndoRedoManager {
   static const int maxStackSize = 200;
   static const Duration coalesceDuration = Duration(seconds: 1);
 
+  /// Adaptive max stack size for large documents to bound memory usage.
+  static int maxStackSizeForDoc(int docLength) {
+    if (docLength > 100000) return 50; // >100KB: 50 snapshots
+    if (docLength > 50000) return 100; // >50KB: 100 snapshots
+    return maxStackSize; // <=50KB: 200 snapshots (default)
+  }
+
   final List<MarkdownSnapshot> _undoStack = [];
   final List<MarkdownSnapshot> _redoStack = [];
   Timer? _coalesceTimer;
@@ -89,8 +96,10 @@ class UndoRedoManager {
     _lastCommittedState = _pending;
     _pending = null;
 
-    // Trim if over max size
-    while (_undoStack.length > maxStackSize) {
+    // Trim with adaptive limit based on document size.
+    final limit =
+        maxStackSizeForDoc(_lastCommittedState?.markdown.length ?? 0);
+    while (_undoStack.length > limit) {
       _undoStack.removeAt(0);
     }
   }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 import '../core/markdown_nodes.dart';
@@ -18,6 +20,18 @@ class MarkdownEditingController extends TextEditingController {
   final MarkdownRenderEngine _engine;
   final MarkdownEditorTheme _theme;
   late final IncrementalParseEngine _parseEngine;
+
+  // Debounce fields for large documents.
+  Timer? _debounceTimer;
+  static const _debounceThreshold = 200; // blocks
+  static const _debounceDuration = Duration(milliseconds: 150);
+  bool _isDebouncing = false;
+
+  // Lazy span building: only style ±N blocks around cursor.
+  static const _styledBlockRadius = 50;
+
+  /// Whether the controller is currently debouncing a re-parse.
+  bool get isDebouncing => _isDebouncing;
 
   MarkdownEditingController({
     String? text,
@@ -199,10 +213,28 @@ class MarkdownEditingController extends TextEditingController {
 
   void _reparse() {
     if (text.isEmpty) {
+      _debounceTimer?.cancel();
+      _isDebouncing = false;
       _document = MarkdownDocument(blocks: []);
       return;
     }
+    // For small documents, always parse immediately.
+    if (_document.blocks.length < _debounceThreshold) {
+      _debounceTimer?.cancel();
+      _isDebouncing = false;
+      _document = _parseEngine.parse(text);
+      return;
+    }
+    // For large documents, debounce.
+    _isDebouncing = true;
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(_debounceDuration, _debouncedReparse);
+  }
+
+  void _debouncedReparse() {
+    _isDebouncing = false;
     _document = _parseEngine.parse(text);
+    notifyListeners();
   }
 
   // ---------------------------------------------------------------------------
@@ -1099,11 +1131,26 @@ class MarkdownEditingController extends TextEditingController {
       return TextSpan(text: '', style: baseStyle);
     }
 
+    // During debounce, return a single unstyled span (cheap).
+    if (_isDebouncing) {
+      return TextSpan(text: text, style: baseStyle);
+    }
+
     final activeIdx = activeBlockIndex;
     final spans = <TextSpan>[];
+    final blockCount = _document.blocks.length;
 
-    for (var i = 0; i < _document.blocks.length; i++) {
+    for (var i = 0; i < blockCount; i++) {
       final block = _document.blocks[i];
+
+      // For large documents, only style blocks near the cursor.
+      if (blockCount > _styledBlockRadius * 2 &&
+          (i - activeIdx).abs() > _styledBlockRadius) {
+        // Far from cursor: plain unstyled TextSpan (cheap).
+        spans.add(TextSpan(text: block.sourceText, style: baseStyle));
+        continue;
+      }
+
       if (i == activeIdx) {
         spans.add(_engine.buildRevealedSpan(block, baseStyle));
       } else {
@@ -1112,5 +1159,11 @@ class MarkdownEditingController extends TextEditingController {
     }
 
     return TextSpan(children: spans, style: baseStyle);
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 }

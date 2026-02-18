@@ -43,10 +43,10 @@ class MarkdownRenderEngine {
     _spanCache[key] = span;
 
     // Keep cache bounded to prevent memory growth in long editing sessions.
-    if (_spanCache.length > 500) {
-      // Remove oldest entries (first ~100).
+    if (_spanCache.length > 300) {
+      // Remove oldest entries (first ~50) — gentler eviction.
       final keys = _spanCache.keys.toList();
-      for (var i = 0; i < 100 && i < keys.length; i++) {
+      for (var i = 0; i < 50 && i < keys.length; i++) {
         _spanCache.remove(keys[i]);
       }
     }
