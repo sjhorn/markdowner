@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../core/image_insert_event.dart';
@@ -173,14 +174,49 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   // Format toggle delegates
   // ---------------------------------------------------------------------------
 
-  void toggleBold() => _controller.toggleBold();
-  void toggleItalic() => _controller.toggleItalic();
-  void toggleInlineCode() => _controller.toggleInlineCode();
-  void toggleStrikethrough() => _controller.toggleStrikethrough();
-  void toggleHighlight() => _controller.toggleHighlight();
-  void toggleSubscript() => _controller.toggleSubscript();
-  void toggleSuperscript() => _controller.toggleSuperscript();
-  void setHeadingLevel(int level) => _controller.setHeadingLevel(level);
+  void toggleBold() {
+    _controller.toggleBold();
+    SemanticsService.announce('Bold toggled', TextDirection.ltr);
+  }
+
+  void toggleItalic() {
+    _controller.toggleItalic();
+    SemanticsService.announce('Italic toggled', TextDirection.ltr);
+  }
+
+  void toggleInlineCode() {
+    _controller.toggleInlineCode();
+    SemanticsService.announce('Inline code toggled', TextDirection.ltr);
+  }
+
+  void toggleStrikethrough() {
+    _controller.toggleStrikethrough();
+    SemanticsService.announce('Strikethrough toggled', TextDirection.ltr);
+  }
+
+  void toggleHighlight() {
+    _controller.toggleHighlight();
+    SemanticsService.announce('Highlight toggled', TextDirection.ltr);
+  }
+
+  void toggleSubscript() {
+    _controller.toggleSubscript();
+    SemanticsService.announce('Subscript toggled', TextDirection.ltr);
+  }
+
+  void toggleSuperscript() {
+    _controller.toggleSuperscript();
+    SemanticsService.announce('Superscript toggled', TextDirection.ltr);
+  }
+
+  void setHeadingLevel(int level) {
+    _controller.setHeadingLevel(level);
+    SemanticsService.announce(
+      level > 0 ? 'Heading level $level' : 'Heading removed',
+      TextDirection.ltr,
+    );
+  }
+
   void indent() => _controller.indent();
   void outdent() => _controller.outdent();
   void insertLink() => _controller.insertLink();
@@ -629,7 +665,11 @@ class MarkdownEditorState extends State<MarkdownEditor> {
       );
     }
 
-    return editor;
+    return Semantics(
+      label: 'Markdown editor',
+      textField: true,
+      child: editor,
+    );
   }
 }
 

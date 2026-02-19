@@ -330,6 +330,129 @@ class MarkdownEditorTheme {
     );
   }
 
+  /// High-contrast theme preset for maximum accessibility.
+  ///
+  /// Pure black text on pure white, bold link underlines, stronger heading
+  /// weights, bright accent colors.
+  factory MarkdownEditorTheme.highContrast() {
+    const base = TextStyle(
+      fontSize: 18,
+      color: Color(0xFF000000),
+      height: 1.6,
+    );
+    return MarkdownEditorTheme(
+      baseStyle: base,
+      headingStyles: [
+        base.copyWith(fontSize: 36, fontWeight: FontWeight.w900, height: 1.3),
+        base.copyWith(fontSize: 30, fontWeight: FontWeight.w900, height: 1.3),
+        base.copyWith(fontSize: 26, fontWeight: FontWeight.w800, height: 1.4),
+        base.copyWith(fontSize: 22, fontWeight: FontWeight.w800, height: 1.4),
+        base.copyWith(fontSize: 20, fontWeight: FontWeight.w700, height: 1.5),
+        base.copyWith(fontSize: 18, fontWeight: FontWeight.w700, height: 1.5),
+      ],
+      boldStyle: base.copyWith(fontWeight: FontWeight.w900),
+      italicStyle: base.copyWith(fontStyle: FontStyle.italic),
+      boldItalicStyle: base.copyWith(
+        fontWeight: FontWeight.w900,
+        fontStyle: FontStyle.italic,
+      ),
+      inlineCodeStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 16,
+        backgroundColor: const Color(0xFFE0E0E0),
+      ),
+      strikethroughStyle: base.copyWith(
+        decoration: TextDecoration.lineThrough,
+        decorationThickness: 3.0,
+        color: const Color(0xFF555555),
+      ),
+      highlightStyle: base.copyWith(
+        backgroundColor: const Color(0xFFFFFF00),
+      ),
+      subscriptStyle: base.copyWith(
+        fontSize: 14,
+      ),
+      superscriptStyle: base.copyWith(
+        fontSize: 14,
+      ),
+      linkStyle: base.copyWith(
+        color: const Color(0xFF0000EE),
+        decoration: TextDecoration.underline,
+        decorationThickness: 2.0,
+      ),
+      codeBlockStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 16,
+        backgroundColor: const Color(0xFFE0E0E0),
+      ),
+      blockquoteStyle: base.copyWith(
+        fontStyle: FontStyle.italic,
+        color: const Color(0xFF333333),
+      ),
+      mathStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 16,
+        color: const Color(0xFF6A1B9A),
+      ),
+      mathBlockStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 16,
+        color: const Color(0xFF6A1B9A),
+      ),
+      footnoteRefStyle: base.copyWith(
+        fontSize: 14,
+        color: const Color(0xFF0000EE),
+      ),
+      footnoteDefinitionStyle: base.copyWith(
+        color: const Color(0xFF333333),
+      ),
+      emojiStyle: base.copyWith(
+        color: const Color(0xFFCC4400),
+      ),
+      frontMatterStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 16,
+        color: const Color(0xFF555555),
+      ),
+      tocStyle: base.copyWith(
+        fontWeight: FontWeight.w700,
+        color: const Color(0xFF0000EE),
+      ),
+      thematicBreakStyle: base.copyWith(
+        decoration: TextDecoration.lineThrough,
+        decorationColor: const Color(0xFF000000),
+        decorationThickness: 3.0,
+        color: const Color(0x00000000),
+        letterSpacing: 4.0,
+      ),
+      taskUncheckedStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 16,
+        color: const Color(0xFF555555),
+      ),
+      taskCheckedStyle: base.copyWith(
+        fontFamily: 'monospace',
+        fontSize: 16,
+        color: const Color(0xFF006600),
+        fontWeight: FontWeight.w900,
+      ),
+      blockquoteMarkerStyle: base.copyWith(
+        color: const Color(0xFF0000EE),
+        fontWeight: FontWeight.w900,
+      ),
+      syntaxDelimiterStyle: base.copyWith(
+        color: const Color(0xFF555555),
+      ),
+      hiddenSyntaxStyle: base.copyWith(
+        fontSize: 0.01,
+        color: const Color(0x00000000),
+      ),
+      cursorColor: const Color(0xFF000000),
+      selectionColor: const Color(0x600066FF),
+      backgroundColor: const Color(0xFFFFFFFF),
+    );
+  }
+
   /// Creates a copy with the given fields replaced.
   MarkdownEditorTheme copyWith({
     TextStyle? baseStyle,

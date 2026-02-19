@@ -133,6 +133,16 @@ void main() {
     });
   });
 
+  group('Accessibility', () {
+    testWidgets('Semantics widget wraps editor with label', (tester) async {
+      await tester.pumpWidget(buildApp(initialMarkdown: 'Hello\n'));
+      await tester.pump();
+
+      final semantics = find.bySemanticsLabel('Markdown editor');
+      expect(semantics, findsOneWidget);
+    });
+  });
+
   group('MarkdownEditorState', () {
     testWidgets('exposes controller via state', (tester) async {
       final key = GlobalKey<MarkdownEditorState>();

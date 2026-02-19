@@ -110,6 +110,32 @@ void main() {
     });
   });
 
+  group('MarkdownEditorTheme.highContrast()', () {
+    late MarkdownEditorTheme theme;
+
+    setUp(() {
+      theme = MarkdownEditorTheme.highContrast();
+    });
+
+    test('has pure black text on white background', () {
+      expect(theme.baseStyle.color, equals(const Color(0xFF000000)));
+      expect(theme.backgroundColor, equals(const Color(0xFFFFFFFF)));
+    });
+
+    test('has 6 heading styles', () {
+      expect(theme.headingStyles.length, equals(6));
+    });
+
+    test('link style has underline decoration', () {
+      expect(theme.linkStyle.decoration, equals(TextDecoration.underline));
+    });
+
+    test('cursor is black and selection is visible', () {
+      expect(theme.cursorColor, equals(const Color(0xFF000000)));
+      expect(theme.selectionColor, isNot(equals(const Color(0x00000000))));
+    });
+  });
+
   group('extension styles', () {
     test('light theme has highlight, subscript, superscript styles', () {
       final theme = MarkdownEditorTheme.light();
