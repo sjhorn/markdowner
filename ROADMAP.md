@@ -1865,18 +1865,18 @@ enum ImageInsertSource {
 - [x] Memory profiling and optimization (adaptive undo stack: 50/100/200 snapshots by doc size; cache eviction tuned 300/50)
 
 **Accessibility:**
-- [ ] Screen reader support: semantic labels for headings, lists, links, images
+- [x] Screen reader support: semantic labels for headings, lists, links, images
 - [ ] ARIA-equivalent attributes for web platform
-- [ ] Keyboard navigation without mouse
-- [ ] High-contrast theme variant
-- [ ] Announce formatting changes to screen reader
+- [x] Keyboard navigation without mouse
+- [x] High-contrast theme variant
+- [x] Announce formatting changes to screen reader
 
 **Additional Features:**
-- [ ] Find and replace (`Ctrl/Cmd + F`, `Ctrl/Cmd + H`)
-- [ ] Word count / character count / reading time
+- [x] Find and replace (`Ctrl/Cmd + F`, `Ctrl/Cmd + H`)
+- [x] Word count / character count / reading time
 - [ ] Spell-check integration (platform-native)
 - [x] Export to HTML (`toHtml()` method)
-- [ ] `readOnly` mode: fully rendered, non-editable, all blocks collapsed
+- [x] `readOnly` mode: fully rendered, non-editable, all blocks collapsed
 - [ ] Sepia theme preset
 - [ ] Smooth animations for reveal/hide transitions (optional, configurable duration)
 - [ ] Code block copy button
