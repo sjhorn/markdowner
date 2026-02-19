@@ -4,9 +4,11 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../core/image_insert_event.dart';
+import '../editor/find_replace_controller.dart';
 import '../editor/markdown_editing_controller.dart';
 import '../theme/markdown_editor_theme.dart';
 import '../utils/undo_redo_manager.dart';
+import 'find_replace_bar.dart';
 
 /// A WYSIWYG markdown editor widget with reveal/hide mechanics.
 ///
@@ -95,6 +97,11 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   bool _initialFocusApplied = false;
   VoidCallback? _restorationGuard;
 
+  // Find/replace state.
+  bool _findBarVisible = false;
+  bool _showReplace = false;
+  final FindReplaceController _findController = FindReplaceController();
+
   MarkdownEditingController get controller => _controller;
   UndoRedoManager get undoRedoManager => _undoRedoManager;
 
@@ -174,47 +181,52 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   // Format toggle delegates
   // ---------------------------------------------------------------------------
 
+  void _announce(String message) {
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      message,
+      TextDirection.ltr,
+    );
+  }
+
   void toggleBold() {
     _controller.toggleBold();
-    SemanticsService.announce('Bold toggled', TextDirection.ltr);
+    _announce('Bold toggled');
   }
 
   void toggleItalic() {
     _controller.toggleItalic();
-    SemanticsService.announce('Italic toggled', TextDirection.ltr);
+    _announce('Italic toggled');
   }
 
   void toggleInlineCode() {
     _controller.toggleInlineCode();
-    SemanticsService.announce('Inline code toggled', TextDirection.ltr);
+    _announce('Inline code toggled');
   }
 
   void toggleStrikethrough() {
     _controller.toggleStrikethrough();
-    SemanticsService.announce('Strikethrough toggled', TextDirection.ltr);
+    _announce('Strikethrough toggled');
   }
 
   void toggleHighlight() {
     _controller.toggleHighlight();
-    SemanticsService.announce('Highlight toggled', TextDirection.ltr);
+    _announce('Highlight toggled');
   }
 
   void toggleSubscript() {
     _controller.toggleSubscript();
-    SemanticsService.announce('Subscript toggled', TextDirection.ltr);
+    _announce('Subscript toggled');
   }
 
   void toggleSuperscript() {
     _controller.toggleSuperscript();
-    SemanticsService.announce('Superscript toggled', TextDirection.ltr);
+    _announce('Superscript toggled');
   }
 
   void setHeadingLevel(int level) {
     _controller.setHeadingLevel(level);
-    SemanticsService.announce(
-      level > 0 ? 'Heading level $level' : 'Heading removed',
-      TextDirection.ltr,
-    );
+    _announce(level > 0 ? 'Heading level $level' : 'Heading removed');
   }
 
   void indent() => _controller.indent();
@@ -421,6 +433,7 @@ class MarkdownEditorState extends State<MarkdownEditor> {
     if (_ownsController) _controller.dispose();
     if (_ownsFocusNode) _focusNode.dispose();
     _undoRedoManager.dispose();
+    _findController.dispose();
     super.dispose();
   }
 
@@ -498,6 +511,14 @@ class MarkdownEditorState extends State<MarkdownEditor> {
         // Save
         SingleActivator(LogicalKeyboardKey.keyS,
             meta: _isMacOS, control: !_isMacOS): const _SaveIntent(),
+
+        // Find / Replace
+        SingleActivator(LogicalKeyboardKey.keyF,
+            meta: _isMacOS, control: !_isMacOS): const _FindIntent(),
+        SingleActivator(LogicalKeyboardKey.keyH,
+            meta: _isMacOS, control: !_isMacOS): const _FindReplaceIntent(),
+        const SingleActivator(LogicalKeyboardKey.escape):
+            const _CloseFindBarIntent(),
       };
 
   Map<Type, Action<Intent>> get _actions => {
@@ -534,6 +555,12 @@ class MarkdownEditorState extends State<MarkdownEditor> {
         _SaveIntent: CallbackAction<_SaveIntent>(
             onInvoke: (_) =>
                 widget.onSaved?.call(_controller.text)),
+        _FindIntent: CallbackAction<_FindIntent>(
+            onInvoke: (_) => _showFindBar(showReplace: false)),
+        _FindReplaceIntent: CallbackAction<_FindReplaceIntent>(
+            onInvoke: (_) => _showFindBar(showReplace: true)),
+        _CloseFindBarIntent: CallbackAction<_CloseFindBarIntent>(
+            onInvoke: (_) => _closeFindBar()),
       };
 
   /// Build the context menu with standard + markdown formatting actions.
@@ -609,9 +636,39 @@ class MarkdownEditorState extends State<MarkdownEditor> {
     return KeyEventResult.ignored;
   }
 
+  void _showFindBar({required bool showReplace}) {
+    setState(() {
+      _findBarVisible = true;
+      _showReplace = showReplace;
+    });
+  }
+
+  void _closeFindBar() {
+    if (_findBarVisible) {
+      setState(() {
+        _findBarVisible = false;
+        _findController.clear();
+        _controller.highlightRanges = [];
+      });
+    }
+  }
+
+  void _onFindReplaceText(String newText) {
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: _controller.selection.baseOffset.clamp(0, newText.length)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _controller.readOnly = widget.readOnly;
+
+    // Sync highlight ranges from find controller to editing controller.
+    if (_findBarVisible) {
+      _controller.highlightRanges = _findController.matches;
+      _controller.activeHighlightIndex = _findController.currentMatchIndex;
+    }
     final theme = widget.theme ?? MarkdownEditorTheme.light();
 
     final editableText = EditableText(
@@ -664,6 +721,23 @@ class MarkdownEditorState extends State<MarkdownEditor> {
       padding: widget.padding,
       child: editorContent,
     );
+
+    // Add find/replace bar above the editor when visible.
+    if (_findBarVisible) {
+      editor = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FindReplaceBar(
+            findController: _findController,
+            showReplace: _showReplace,
+            text: _controller.text,
+            onReplace: _onFindReplaceText,
+            onClose: _closeFindBar,
+          ),
+          Expanded(child: SingleChildScrollView(child: editor)),
+        ],
+      );
+    }
 
     if (widget.toolbarBuilder != null) {
       final editorKey = widget.key as GlobalKey<MarkdownEditorState>;
@@ -885,4 +959,16 @@ class _ToggleMathIntent extends Intent {
 
 class _SaveIntent extends Intent {
   const _SaveIntent();
+}
+
+class _FindIntent extends Intent {
+  const _FindIntent();
+}
+
+class _FindReplaceIntent extends Intent {
+  const _FindReplaceIntent();
+}
+
+class _CloseFindBarIntent extends Intent {
+  const _CloseFindBarIntent();
 }

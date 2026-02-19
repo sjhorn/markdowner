@@ -34,6 +34,10 @@ class MarkdownEditingController extends TextEditingController {
   // readOnly mode: when true, all blocks render collapsed.
   bool _readOnly = false;
 
+  // Highlight ranges for find/replace matches.
+  List<TextRange> _highlightRanges = [];
+  int _activeHighlightIndex = -1;
+
   /// Whether the controller is currently debouncing a re-parse.
   bool get isDebouncing => _isDebouncing;
 
@@ -47,6 +51,36 @@ class MarkdownEditingController extends TextEditingController {
       _readOnly = value;
       notifyListeners();
     }
+  }
+
+  /// Ranges to highlight (e.g. find/replace matches).
+  ///
+  /// Setting this triggers a repaint so highlights are rendered.
+  List<TextRange> get highlightRanges => _highlightRanges;
+  set highlightRanges(List<TextRange> ranges) {
+    if (!_listEquals(ranges, _highlightRanges)) {
+      _highlightRanges = ranges;
+      notifyListeners();
+    }
+  }
+
+  /// The index of the active highlight (e.g. the current find match).
+  ///
+  /// Setting this triggers a repaint to update the active highlight style.
+  int get activeHighlightIndex => _activeHighlightIndex;
+  set activeHighlightIndex(int index) {
+    if (_activeHighlightIndex != index) {
+      _activeHighlightIndex = index;
+      notifyListeners();
+    }
+  }
+
+  static bool _listEquals(List<TextRange> a, List<TextRange> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].start != b[i].start || a[i].end != b[i].end) return false;
+    }
+    return true;
   }
 
   MarkdownEditingController({
