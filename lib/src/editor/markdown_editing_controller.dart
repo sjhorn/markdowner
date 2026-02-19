@@ -30,8 +30,23 @@ class MarkdownEditingController extends TextEditingController {
   // Lazy span building: only style ±N blocks around cursor.
   static const _styledBlockRadius = 50;
 
+  // readOnly mode: when true, all blocks render collapsed.
+  bool _readOnly = false;
+
   /// Whether the controller is currently debouncing a re-parse.
   bool get isDebouncing => _isDebouncing;
+
+  /// Whether the editor is in read-only mode.
+  ///
+  /// When true, [activeBlockIndex] always returns -1 so all blocks render
+  /// in collapsed (formatted) mode with no revealed syntax.
+  bool get readOnly => _readOnly;
+  set readOnly(bool value) {
+    if (_readOnly != value) {
+      _readOnly = value;
+      notifyListeners();
+    }
+  }
 
   MarkdownEditingController({
     String? text,
@@ -55,7 +70,10 @@ class MarkdownEditingController extends TextEditingController {
   String toHtml() => MarkdownToHtmlConverter().convert(_document);
 
   /// The index of the block containing the cursor, or -1.
+  ///
+  /// Returns -1 when [readOnly] is true, so all blocks render collapsed.
   int get activeBlockIndex {
+    if (_readOnly) return -1;
     final offset = selection.baseOffset;
     if (offset < 0) return -1;
     return _document.blockIndexAtOffset(offset);

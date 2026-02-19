@@ -611,48 +611,58 @@ class MarkdownEditorState extends State<MarkdownEditor> {
 
   @override
   Widget build(BuildContext context) {
+    _controller.readOnly = widget.readOnly;
     final theme = widget.theme ?? MarkdownEditorTheme.light();
-    Widget editor = Container(
-      color: theme.backgroundColor,
-      padding: widget.padding,
-      child: Shortcuts(
+
+    final editableText = EditableText(
+      key: _editableKey,
+      rendererIgnoresPointer: true,
+      controller: _controller,
+      focusNode: _focusNode,
+      style: theme.baseStyle,
+      cursorColor: theme.cursorColor,
+      selectionColor: const Color(0x00000000),
+      backgroundCursorColor: theme.cursorColor.withValues(alpha: 0.1),
+      readOnly: widget.readOnly,
+      autofocus: widget.autofocus,
+      maxLines: null,
+      keyboardType: TextInputType.multiline,
+      contextMenuBuilder: widget.readOnly ? null : _buildContextMenu,
+      inputFormatters: widget.readOnly
+          ? [FilteringTextInputFormatter.deny(RegExp(r'\t'))]
+          : [
+              FilteringTextInputFormatter.deny(RegExp(r'\t')),
+              _SmartEditFormatter(_controller),
+            ],
+    );
+
+    Widget editorContent = _gestureDetectorBuilder.buildGestureDetector(
+      behavior: HitTestBehavior.translucent,
+      child: CustomPaint(
+        painter: _GapFreeSelectionPainter(
+          controller: _controller,
+          editableKey: _editableKey,
+          selectionColor: theme.selectionColor,
+        ),
+        child: editableText,
+      ),
+    );
+
+    // Wrap with shortcuts and actions only when not readOnly.
+    if (!widget.readOnly) {
+      editorContent = Shortcuts(
         shortcuts: _shortcuts,
         child: Actions(
           actions: _actions,
-          child: _gestureDetectorBuilder.buildGestureDetector(
-            behavior: HitTestBehavior.translucent,
-            child: CustomPaint(
-              painter: _GapFreeSelectionPainter(
-                controller: _controller,
-                editableKey: _editableKey,
-                selectionColor: theme.selectionColor,
-              ),
-              child: EditableText(
-                key: _editableKey,
-                rendererIgnoresPointer: true,
-                controller: _controller,
-                focusNode: _focusNode,
-                style: theme.baseStyle,
-                cursorColor: theme.cursorColor,
-                selectionColor: const Color(0x00000000),
-                backgroundCursorColor:
-                    theme.cursorColor.withValues(alpha: 0.1),
-                readOnly: widget.readOnly,
-                autofocus: widget.autofocus,
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-                contextMenuBuilder: _buildContextMenu,
-                inputFormatters: [
-                  // Tab chars are handled by _handleTabKeyEvent; block
-                  // any platform-injected \t from reaching the controller.
-                  FilteringTextInputFormatter.deny(RegExp(r'\t')),
-                  _SmartEditFormatter(_controller),
-                ],
-              ),
-            ),
-          ),
+          child: editorContent,
         ),
-      ),
+      );
+    }
+
+    Widget editor = Container(
+      color: theme.backgroundColor,
+      padding: widget.padding,
+      child: editorContent,
     );
 
     if (widget.toolbarBuilder != null) {
