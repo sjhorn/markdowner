@@ -7,6 +7,7 @@ import '../parsing/incremental_parser.dart';
 import '../rendering/markdown_render_engine.dart';
 import '../theme/markdown_editor_theme.dart';
 import '../toolbar/markdown_toolbar.dart';
+import '../utils/document_stats.dart';
 import '../utils/markdown_to_html.dart';
 
 /// A [TextEditingController] that parses its text as markdown and builds
@@ -68,6 +69,9 @@ class MarkdownEditingController extends TextEditingController {
 
   /// Export the current document as HTML.
   String toHtml() => MarkdownToHtmlConverter().convert(_document);
+
+  /// Document statistics (word count, character count, reading time).
+  DocumentStats get stats => DocumentStats.fromText(text);
 
   /// The index of the block containing the cursor, or -1.
   ///

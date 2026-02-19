@@ -13,6 +13,7 @@ export 'src/rendering/markdown_render_engine.dart';
 export 'src/theme/markdown_editor_theme.dart';
 export 'src/toolbar/markdown_toolbar.dart';
 export 'src/utils/cursor_mapper.dart';
+export 'src/utils/document_stats.dart';
 export 'src/utils/emoji_map.dart';
 export 'src/utils/html_to_markdown.dart';
 export 'src/utils/markdown_to_html.dart';
