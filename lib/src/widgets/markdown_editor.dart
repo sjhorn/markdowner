@@ -101,9 +101,19 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   bool _findBarVisible = false;
   bool _showReplace = false;
   final FindReplaceController _findController = FindReplaceController();
+  final ScrollController _findScrollController = ScrollController();
 
   MarkdownEditingController get controller => _controller;
   UndoRedoManager get undoRedoManager => _undoRedoManager;
+
+  /// Show the find bar (without replace).
+  void showFindBar() => _showFindBar(showReplace: false);
+
+  /// Show the find bar with replace functionality.
+  void showFindReplaceBar() => _showFindBar(showReplace: true);
+
+  /// Close the find/replace bar.
+  void closeFindBar() => _closeFindBar();
 
   /// Snapshot names from the undo stack, most recent first.
   List<String> get undoNames => _undoRedoManager.undoNames;
@@ -280,6 +290,7 @@ class MarkdownEditorState extends State<MarkdownEditor> {
 
     _controller.addListener(_onControllerChanged);
     _focusNode.addListener(_onFocusChanged);
+    _findController.addListener(_onFindControllerChanged);
     _undoRedoManager.setInitialState(
       _controller.text,
       _controller.selection,
@@ -430,10 +441,12 @@ class MarkdownEditorState extends State<MarkdownEditor> {
     _removeRestorationGuard();
     _focusNode.removeListener(_onFocusChanged);
     _controller.removeListener(_onControllerChanged);
+    _findController.removeListener(_onFindControllerChanged);
     if (_ownsController) _controller.dispose();
     if (_ownsFocusNode) _focusNode.dispose();
     _undoRedoManager.dispose();
     _findController.dispose();
+    _findScrollController.dispose();
     super.dispose();
   }
 
@@ -653,6 +666,60 @@ class MarkdownEditorState extends State<MarkdownEditor> {
     }
   }
 
+  void _onFindControllerChanged() {
+    if (!_findBarVisible) return;
+    setState(() {
+      _controller.highlightRanges = _findController.matches;
+      _controller.activeHighlightIndex = _findController.currentMatchIndex;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scrollToActiveMatch();
+    });
+  }
+
+  void _scrollToActiveMatch() {
+    if (!_findScrollController.hasClients) return;
+    final activeIndex = _findController.currentMatchIndex;
+    final matches = _findController.matches;
+    if (activeIndex < 0 || activeIndex >= matches.length) return;
+
+    final editable = _editableKey.currentState?.renderEditable;
+    if (editable == null) return;
+
+    final range = matches[activeIndex];
+    final selection = TextSelection(
+      baseOffset: range.start,
+      extentOffset: range.end,
+    );
+    final boxes = editable.getBoxesForSelection(selection);
+    if (boxes.isEmpty) return;
+
+    // The box positions are relative to the editable text. We need to account
+    // for the padding above the editor content.
+    final matchTop = boxes.first.top + widget.padding.top;
+    final matchBottom = boxes.last.bottom + widget.padding.top;
+
+    final viewportHeight = _findScrollController.position.viewportDimension;
+    final currentOffset = _findScrollController.offset;
+    final viewportTop = currentOffset;
+    final viewportBottom = currentOffset + viewportHeight;
+
+    // Already visible — no scroll needed.
+    if (matchTop >= viewportTop && matchBottom <= viewportBottom) return;
+
+    // Center the match in the viewport.
+    final matchCenter = (matchTop + matchBottom) / 2;
+    final targetOffset = (matchCenter - viewportHeight / 2).clamp(
+      0.0,
+      _findScrollController.position.maxScrollExtent,
+    );
+    _findScrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+    );
+  }
+
   void _onFindReplaceText(String newText) {
     _controller.value = TextEditingValue(
       text: newText,
@@ -663,12 +730,6 @@ class MarkdownEditorState extends State<MarkdownEditor> {
   @override
   Widget build(BuildContext context) {
     _controller.readOnly = widget.readOnly;
-
-    // Sync highlight ranges from find controller to editing controller.
-    if (_findBarVisible) {
-      _controller.highlightRanges = _findController.matches;
-      _controller.activeHighlightIndex = _findController.currentMatchIndex;
-    }
     final theme = widget.theme ?? MarkdownEditorTheme.light();
 
     final editableText = EditableText(
@@ -696,12 +757,18 @@ class MarkdownEditorState extends State<MarkdownEditor> {
     Widget editorContent = _gestureDetectorBuilder.buildGestureDetector(
       behavior: HitTestBehavior.translucent,
       child: CustomPaint(
-        painter: _GapFreeSelectionPainter(
+        painter: _FindHighlightPainter(
           controller: _controller,
           editableKey: _editableKey,
-          selectionColor: theme.selectionColor,
         ),
-        child: editableText,
+        child: CustomPaint(
+          painter: _GapFreeSelectionPainter(
+            controller: _controller,
+            editableKey: _editableKey,
+            selectionColor: theme.selectionColor,
+          ),
+          child: editableText,
+        ),
       ),
     );
 
@@ -734,7 +801,12 @@ class MarkdownEditorState extends State<MarkdownEditor> {
             onReplace: _onFindReplaceText,
             onClose: _closeFindBar,
           ),
-          Expanded(child: SingleChildScrollView(child: editor)),
+          Expanded(
+            child: SingleChildScrollView(
+              controller: _findScrollController,
+              child: editor,
+            ),
+          ),
         ],
       );
     }
@@ -848,6 +920,60 @@ class _GapFreeSelectionPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _GapFreeSelectionPainter old) => true;
+}
+
+// ---------------------------------------------------------------------------
+// Find highlight painter
+// ---------------------------------------------------------------------------
+
+/// Paints highlight rectangles behind find/replace matches.
+///
+/// Inactive matches render as yellow; the active match renders as orange.
+/// Uses the same [RenderEditable.getBoxesForSelection] approach as
+/// [_GapFreeSelectionPainter].
+class _FindHighlightPainter extends CustomPainter {
+  final MarkdownEditingController controller;
+  final GlobalKey<EditableTextState> editableKey;
+
+  static const _inactiveColor = Color(0x66FFEB3B); // yellow with alpha
+  static const _activeColor = Color(0x99FF9800); // orange with alpha
+
+  _FindHighlightPainter({
+    required this.controller,
+    required this.editableKey,
+  }) : super(repaint: controller);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final ranges = controller.highlightRanges;
+    if (ranges.isEmpty) return;
+
+    final editable = editableKey.currentState?.renderEditable;
+    if (editable == null) return;
+
+    final activeIndex = controller.activeHighlightIndex;
+    final inactivePaint = Paint()..color = _inactiveColor;
+    final activePaint = Paint()..color = _activeColor;
+
+    for (var i = 0; i < ranges.length; i++) {
+      final range = ranges[i];
+      final selection = TextSelection(
+        baseOffset: range.start,
+        extentOffset: range.end,
+      );
+      final boxes = editable.getBoxesForSelection(selection);
+      final paint = i == activeIndex ? activePaint : inactivePaint;
+      for (final box in boxes) {
+        canvas.drawRect(
+          Rect.fromLTRB(box.left, box.top, box.right, box.bottom),
+          paint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _FindHighlightPainter old) => true;
 }
 
 // ---------------------------------------------------------------------------
